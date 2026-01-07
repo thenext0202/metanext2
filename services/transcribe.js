@@ -31,11 +31,19 @@ class TranscribeService {
         const audioPath = path.join(this.tempDir, `audio_${timestamp}.mp3`);
 
         try {
-            console.log('[Transcribe] 비디오 다운로드 중...');
-            await this.downloadFile(videoUrl, videoPath);
+            // HLS 스트림(m3u8)인 경우 ffmpeg로 직접 처리
+            const isHLS = videoUrl.includes('.m3u8') || videoUrl.includes('manifest');
 
-            console.log('[Transcribe] 오디오 추출 중...');
-            await this.extractAudio(videoPath, audioPath);
+            if (isHLS) {
+                console.log('[Transcribe] HLS 스트림 감지 - ffmpeg로 직접 오디오 추출...');
+                await this.extractAudioFromStream(videoUrl, audioPath);
+            } else {
+                console.log('[Transcribe] 비디오 다운로드 중...');
+                await this.downloadFile(videoUrl, videoPath);
+
+                console.log('[Transcribe] 오디오 추출 중...');
+                await this.extractAudio(videoPath, audioPath);
+            }
 
             console.log('[Transcribe] Whisper API 호출 중...');
             const transcription = await this.callWhisperAPI(audioPath, language);
@@ -50,8 +58,10 @@ class TranscribeService {
             console.error('[Transcribe] 에러:', error.message);
             throw error;
         } finally {
-            // 임시 파일 정리
-            this.cleanupFile(videoPath);
+            // 임시 파일 정리 (HLS는 videoPath 생성 안함)
+            if (!videoUrl.includes('.m3u8') && !videoUrl.includes('manifest')) {
+                this.cleanupFile(videoPath);
+            }
             this.cleanupFile(audioPath);
         }
     }
@@ -81,6 +91,42 @@ class TranscribeService {
                 }
             });
             writer.on('error', reject);
+        });
+    }
+
+    async extractAudioFromStream(streamUrl, audioPath) {
+        return new Promise((resolve, reject) => {
+            console.log(`[Transcribe] ffmpeg로 HLS 스트림에서 오디오 추출...`);
+
+            const ffmpeg = spawn(ffmpegPath, [
+                '-i', streamUrl,
+                '-vn',
+                '-acodec', 'libmp3lame',
+                '-ab', '128k',
+                '-ar', '16000',
+                '-t', '600',  // 최대 10분
+                '-y',
+                audioPath
+            ]);
+
+            let stderrData = '';
+            ffmpeg.stderr.on('data', (data) => {
+                stderrData += data.toString();
+            });
+
+            ffmpeg.on('close', (code) => {
+                if (code === 0) {
+                    console.log('[Transcribe] HLS 오디오 추출 성공');
+                    resolve();
+                } else {
+                    console.error('[Transcribe] HLS ffmpeg stderr:', stderrData.slice(-500));
+                    reject(new Error(`HLS 오디오 추출 실패: exit code ${code}`));
+                }
+            });
+
+            ffmpeg.on('error', (err) => {
+                reject(new Error(`ffmpeg 실행 실패: ${err.message}`));
+            });
         });
     }
 
