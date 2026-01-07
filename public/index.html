@@ -786,23 +786,7 @@
     </style>
 </head>
 <body>
-    <!-- 로그인 모달 -->
-    <div class="modal" id="loginModal" style="display: flex;">
-        <div class="modal-content" style="max-width: 360px; text-align: center;">
-            <div class="logo" style="margin: 0 auto 24px;">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-            </div>
-            <h3 style="margin-bottom: 8px;">MetaGrabber</h3>
-            <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-bottom: 24px;">비밀번호를 입력하세요</p>
-            <input type="password" id="loginPassword" placeholder="비밀번호" style="width: 100%; margin-bottom: 16px; text-align: center;" onkeypress="if(event.key==='Enter')checkPassword()">
-            <button class="btn-primary" onclick="checkPassword()" style="width: 100%;">입장</button>
-            <p id="loginError" style="color: #f87171; font-size: 0.85rem; margin-top: 12px; display: none;"></p>
-        </div>
-    </div>
-
-    <div class="container" id="mainContainer" style="display: none;">
+    <div class="container">
         <header>
             <div class="logo">
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -929,22 +913,38 @@
                     <h3 style="margin: 0;">OpenAI Whisper API 설정</h3>
                     <button onclick="closeOpenAIModal()" style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
                 </div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.6;">
-                    여러 API 키를 등록하면 자동으로 로드밸런싱됩니다.
-                </p>
 
-                <!-- 등록된 키 목록 -->
-                <div id="apiKeyList" style="margin-bottom: 16px; max-height: 200px; overflow-y: auto;"></div>
-
-                <!-- 새 키 추가 -->
-                <div class="cookie-input-group" style="margin-bottom: 16px;">
-                    <input type="password" id="openaiKeyInput" placeholder="sk-proj-... API 키 입력" style="border-color: rgba(139, 92, 246, 0.3); flex: 1;">
-                    <button class="btn-auth-submit" onclick="addOpenAIKey()" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);">추가</button>
+                <!-- 비밀번호 입력 (인증 전) -->
+                <div id="apiKeyAuthSection">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-bottom: 16px; text-align: center;">
+                        관리자 비밀번호를 입력하세요
+                    </p>
+                    <div class="cookie-input-group" style="margin-bottom: 12px;">
+                        <input type="password" id="apiKeyPassword" placeholder="비밀번호" style="flex: 1; text-align: center;" onkeypress="if(event.key==='Enter')checkAPIKeyPassword()">
+                        <button class="btn-auth-submit" onclick="checkAPIKeyPassword()" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);">확인</button>
+                    </div>
+                    <p id="apiKeyAuthError" style="color: #f87171; font-size: 0.85rem; text-align: center; display: none;"></p>
                 </div>
 
-                <p style="font-size: 0.8rem; color: rgba(255,255,255,0.4); text-align: center;">
-                    <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #8b5cf6;">platform.openai.com</a>에서 API 키 발급
-                </p>
+                <!-- API 키 관리 (인증 후) -->
+                <div id="apiKeyManageSection" style="display: none;">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.6;">
+                        여러 API 키를 등록하면 자동으로 로드밸런싱됩니다.
+                    </p>
+
+                    <!-- 등록된 키 목록 -->
+                    <div id="apiKeyList" style="margin-bottom: 16px; max-height: 200px; overflow-y: auto;"></div>
+
+                    <!-- 새 키 추가 -->
+                    <div class="cookie-input-group" style="margin-bottom: 16px;">
+                        <input type="password" id="openaiKeyInput" placeholder="sk-proj-... API 키 입력" style="border-color: rgba(139, 92, 246, 0.3); flex: 1;">
+                        <button class="btn-auth-submit" onclick="addOpenAIKey()" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);">추가</button>
+                    </div>
+
+                    <p style="font-size: 0.8rem; color: rgba(255,255,255,0.4); text-align: center;">
+                        <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #8b5cf6;">platform.openai.com</a>에서 API 키 발급
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -1154,17 +1154,32 @@
         // 전사 설정 모달 표시
         function showOpenAIKeyBanner() {
             document.getElementById('openaiKeyModal').style.display = 'flex';
-            loadAPIKeys();
+
+            // 이미 인증된 경우 바로 관리 화면 표시
+            if (apiKeyAuthenticated) {
+                document.getElementById('apiKeyAuthSection').style.display = 'none';
+                document.getElementById('apiKeyManageSection').style.display = 'block';
+                loadAPIKeys();
+            } else {
+                // 인증 화면 초기화
+                document.getElementById('apiKeyAuthSection').style.display = 'block';
+                document.getElementById('apiKeyManageSection').style.display = 'none';
+                document.getElementById('apiKeyPassword').value = '';
+                document.getElementById('apiKeyAuthError').style.display = 'none';
+                setTimeout(() => document.getElementById('apiKeyPassword').focus(), 100);
+            }
         }
 
         function closeOpenAIModal() {
             document.getElementById('openaiKeyModal').style.display = 'none';
         }
 
-        // 비밀번호 확인
-        async function checkPassword() {
-            const password = document.getElementById('loginPassword').value;
-            const errorEl = document.getElementById('loginError');
+        // API 키 관리 비밀번호 확인
+        let apiKeyAuthenticated = false;
+
+        async function checkAPIKeyPassword() {
+            const password = document.getElementById('apiKeyPassword').value;
+            const errorEl = document.getElementById('apiKeyAuthError');
 
             if (!password) {
                 errorEl.textContent = '비밀번호를 입력하세요.';
@@ -1180,14 +1195,14 @@
                 });
 
                 if (response.ok) {
-                    localStorage.setItem('metagrabber_auth', 'true');
-                    document.getElementById('loginModal').style.display = 'none';
-                    document.getElementById('mainContainer').style.display = 'block';
-                    checkTranscribeStatus();
+                    apiKeyAuthenticated = true;
+                    document.getElementById('apiKeyAuthSection').style.display = 'none';
+                    document.getElementById('apiKeyManageSection').style.display = 'block';
+                    loadAPIKeys();
                 } else {
                     errorEl.textContent = '비밀번호가 틀렸습니다.';
                     errorEl.style.display = 'block';
-                    document.getElementById('loginPassword').value = '';
+                    document.getElementById('apiKeyPassword').value = '';
                 }
             } catch (error) {
                 errorEl.textContent = '서버 연결 오류';
@@ -1197,14 +1212,7 @@
 
         // 페이지 로드 시 실행
         document.addEventListener('DOMContentLoaded', () => {
-            // 이전 인증 확인
-            if (localStorage.getItem('metagrabber_auth') === 'true') {
-                document.getElementById('loginModal').style.display = 'none';
-                document.getElementById('mainContainer').style.display = 'block';
-                checkTranscribeStatus();
-            } else {
-                document.getElementById('loginPassword').focus();
-            }
+            checkTranscribeStatus();
         });
 
         // 탭 전환
