@@ -11,6 +11,7 @@ const InstagramDownloader = require('./downloaders/instagram');
 const YouTubeDownloader = require('./downloaders/youtube');
 const GoogleAdsDownloader = require('./downloaders/googleads');
 const TranscribeService = require('./services/transcribe');
+const supabase = require('./services/supabase');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -88,7 +89,7 @@ app.post('/api/extract', async (req, res) => {
 });
 
 // Instagram 쿠키 직접 저장 API
-app.post('/api/instagram/cookie', (req, res) => {
+app.post('/api/instagram/cookie', async (req, res) => {
     const { sessionid } = req.body;
 
     if (!sessionid) {
@@ -96,7 +97,13 @@ app.post('/api/instagram/cookie', (req, res) => {
     }
 
     try {
-        // 쿠키 형식으로 저장
+        // Supabase에 저장 (Railway 배포용)
+        if (supabase.enabled) {
+            await supabase.setSession('instagram_sessionid', sessionid);
+            console.log('[Server] Instagram sessionid Supabase에 저장 완료');
+        }
+
+        // 로컬 파일에도 저장 (로컬 개발용)
         const cookies = [
             {
                 name: 'sessionid',
@@ -107,15 +114,10 @@ app.post('/api/instagram/cookie', (req, res) => {
                 secure: true
             }
         ];
-
-        const dataDir = process.env.DATA_DIR || __dirname;
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
-        }
-        const cookiesPath = path.join(dataDir, 'instagram_cookies.json');
+        const cookiesPath = path.join(__dirname, 'instagram_cookies.json');
         fs.writeFileSync(cookiesPath, JSON.stringify(cookies, null, 2));
 
-        console.log('[Server] Instagram sessionid 저장 완료:', cookiesPath);
+        console.log('[Server] Instagram sessionid 저장 완료');
         return res.json({ success: true, message: '쿠키가 저장되었습니다!' });
     } catch (error) {
         console.error('쿠키 저장 에러:', error);
@@ -124,10 +126,20 @@ app.post('/api/instagram/cookie', (req, res) => {
 });
 
 // Instagram 로그인 상태 확인
-app.get('/api/instagram/status', (req, res) => {
-    const dataDir = process.env.DATA_DIR || __dirname;
-    const cookiesPath = path.join(dataDir, 'instagram_cookies.json');
-    const isLoggedIn = fs.existsSync(cookiesPath);
+app.get('/api/instagram/status', async (req, res) => {
+    let isLoggedIn = false;
+
+    // Supabase 확인
+    if (supabase.enabled) {
+        const session = await supabase.getSession('instagram_sessionid');
+        if (session) isLoggedIn = true;
+    }
+
+    // 로컬 파일 확인
+    if (!isLoggedIn) {
+        const cookiesPath = path.join(__dirname, 'instagram_cookies.json');
+        isLoggedIn = fs.existsSync(cookiesPath);
+    }
 
     return res.json({
         loggedIn: isLoggedIn,
@@ -182,12 +194,13 @@ app.post('/api/instagram/login', async (req, res) => {
                 console.log('[Server] sessionid 쿠키 발견!');
                 loggedIn = true;
 
-                // 쿠키 저장
-                const dataDir = process.env.DATA_DIR || __dirname;
-                if (!fs.existsSync(dataDir)) {
-                    fs.mkdirSync(dataDir, { recursive: true });
+                // Supabase에 저장
+                if (supabase.enabled) {
+                    await supabase.setSession('instagram_sessionid', sessionCookie.value);
                 }
-                const cookiesPath = path.join(dataDir, 'instagram_cookies.json');
+
+                // 로컬 파일에도 저장
+                const cookiesPath = path.join(__dirname, 'instagram_cookies.json');
                 const cookieData = [
                     {
                         name: 'sessionid',
@@ -209,11 +222,14 @@ app.post('/api/instagram/login', async (req, res) => {
                 const sessionCookie2 = cookies2.find(c => c.name === 'sessionid');
                 if (sessionCookie2 && sessionCookie2.value) {
                     loggedIn = true;
-                    const dataDir2 = process.env.DATA_DIR || __dirname;
-                    if (!fs.existsSync(dataDir2)) {
-                        fs.mkdirSync(dataDir2, { recursive: true });
+
+                    // Supabase에 저장
+                    if (supabase.enabled) {
+                        await supabase.setSession('instagram_sessionid', sessionCookie2.value);
                     }
-                    const cookiesPath = path.join(dataDir2, 'instagram_cookies.json');
+
+                    // 로컬 파일에도 저장
+                    const cookiesPath = path.join(__dirname, 'instagram_cookies.json');
                     const cookieData = [
                         {
                             name: 'sessionid',

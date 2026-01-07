@@ -1,12 +1,11 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const supabase = require('../services/supabase');
 
 class InstagramDownloader {
     constructor() {
-        // Volume 경로 (Railway) 또는 로컬 경로
-        const dataDir = process.env.DATA_DIR || path.join(__dirname, '..');
-        this.cookiesPath = path.join(dataDir, 'instagram_cookies.json');
+        this.cookiesPath = path.join(__dirname, '..', 'instagram_cookies.json');
     }
 
     extractShortcode(url) {
@@ -14,7 +13,21 @@ class InstagramDownloader {
         return match ? match[1] : null;
     }
 
-    loadSessionId() {
+    async loadSessionId() {
+        // 1. Supabase에서 먼저 확인
+        if (supabase.enabled) {
+            const session = await supabase.getSession('instagram_sessionid');
+            if (session) {
+                console.log('[Instagram] Supabase에서 sessionid 로드');
+                try {
+                    return decodeURIComponent(session);
+                } catch {
+                    return session;
+                }
+            }
+        }
+
+        // 2. 로컬 파일에서 확인
         try {
             if (fs.existsSync(this.cookiesPath)) {
                 const data = JSON.parse(fs.readFileSync(this.cookiesPath, 'utf8'));
@@ -43,7 +56,7 @@ class InstagramDownloader {
         }
         console.log(`[Instagram] Shortcode: ${shortcode}`);
 
-        const sessionid = this.loadSessionId();
+        const sessionid = await this.loadSessionId();
         if (!sessionid) {
             console.log('[Instagram] sessionid 없음 - 쿠키를 먼저 저장해주세요');
             return null;
