@@ -7,6 +7,7 @@ const puppeteer = require('puppeteer');
 
 const FacebookDownloader = require('./downloaders/facebook');
 const InstagramDownloader = require('./downloaders/instagram');
+const YouTubeDownloader = require('./downloaders/youtube');
 
 const app = express();
 const PORT = 5000;
@@ -25,6 +26,7 @@ if (!fs.existsSync(downloadDir)) {
 // 다운로더 인스턴스
 const facebookDownloader = new FacebookDownloader();
 const instagramDownloader = new InstagramDownloader();
+const youtubeDownloader = new YouTubeDownloader();
 
 // 메인 페이지
 app.get('/', (req, res) => {
@@ -48,9 +50,11 @@ app.post('/api/extract', async (req, res) => {
             result = await facebookDownloader.extractVideoUrl(trimmedUrl);
         } else if (InstagramDownloader.isValidUrl(trimmedUrl)) {
             result = await instagramDownloader.extractVideoUrl(trimmedUrl);
+        } else if (YouTubeDownloader.isValidUrl(trimmedUrl)) {
+            result = await youtubeDownloader.extractVideoUrl(trimmedUrl);
         } else {
             return res.status(400).json({
-                error: '지원하지 않는 URL입니다. Facebook Ads Library 또는 Instagram Reels URL을 입력해주세요.'
+                error: '지원하지 않는 URL입니다. YouTube, Instagram, Facebook URL을 입력해주세요.'
             });
         }
 
