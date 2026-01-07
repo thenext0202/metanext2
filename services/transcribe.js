@@ -26,7 +26,7 @@ class TranscribeService {
         }
     }
 
-    async transcribe(videoUrl, language = 'ko') {
+    async transcribe(videoUrl, language = 'ko', prompt = '') {
         // UUID로 파일명 생성 (동시 요청 충돌 방지)
         const fileId = uuidv4();
         const videoPath = path.join(this.tempDir, `video_${fileId}.mp4`);
@@ -49,7 +49,10 @@ class TranscribeService {
 
             // API 키 풀에서 재시도 로직으로 Whisper 호출
             console.log('[Transcribe] Whisper API 호출 중...');
-            const transcription = await this.callWhisperWithRetry(audioPath, language);
+            if (prompt) {
+                console.log(`[Transcribe] Prompt 힌트: ${prompt.substring(0, 50)}...`);
+            }
+            const transcription = await this.callWhisperWithRetry(audioPath, language, prompt);
 
             return {
                 success: true,
@@ -69,7 +72,7 @@ class TranscribeService {
         }
     }
 
-    async callWhisperWithRetry(audioPath, language, maxRetries = 3) {
+    async callWhisperWithRetry(audioPath, language, prompt = '', maxRetries = 3) {
         const triedKeys = new Set();
         let lastError = null;
 
@@ -94,12 +97,19 @@ class TranscribeService {
                 const openai = new OpenAI({ apiKey });
                 const audioFile = fs.createReadStream(audioPath);
 
-                const response = await openai.audio.transcriptions.create({
+                const options = {
                     file: audioFile,
                     model: 'whisper-1',
                     language: language,
                     response_format: 'json'
-                });
+                };
+
+                // prompt 힌트가 있으면 추가 (발음 인식 정확도 향상)
+                if (prompt) {
+                    options.prompt = prompt;
+                }
+
+                const response = await openai.audio.transcriptions.create(options);
 
                 apiKeyPool.markAvailable(apiKey);
                 console.log(`[Transcribe] API 호출 성공`);

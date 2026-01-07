@@ -1510,12 +1510,16 @@
             content.innerHTML = '<div class="transcribe-loading"><div class="spinner"></div> 음성을 텍스트로 변환하는 중... (1-2분 소요)</div>';
 
             try {
+                // 제목을 prompt 힌트로 전달 (발음 인식 정확도 향상)
+                const prompt = currentVideoData.title || '';
+
                 const response = await fetch('/api/transcribe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         videoUrl: currentVideoData.video_url,
-                        language: 'ko'
+                        language: 'ko',
+                        prompt: prompt
                     })
                 });
 

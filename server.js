@@ -318,7 +318,7 @@ initAPIKeyPool();
 
 // 음성 전사 API
 app.post('/api/transcribe', async (req, res) => {
-    const { videoUrl, language = 'ko' } = req.body;
+    const { videoUrl, language = 'ko', prompt = '' } = req.body;
 
     if (!videoUrl) {
         return res.status(400).json({ error: '비디오 URL이 필요합니다' });
@@ -333,7 +333,10 @@ app.post('/api/transcribe', async (req, res) => {
     try {
         console.log('[Server] 전사 시작:', videoUrl.substring(0, 50) + '...');
         console.log('[Server] API 키 풀 상태:', apiKeyPool.getStatus());
-        const result = await transcribeService.transcribe(videoUrl, language);
+        if (prompt) {
+            console.log('[Server] Prompt 힌트:', prompt.substring(0, 100));
+        }
+        const result = await transcribeService.transcribe(videoUrl, language, prompt);
         return res.json(result);
     } catch (error) {
         console.error('[Server] 전사 에러:', error.message);
