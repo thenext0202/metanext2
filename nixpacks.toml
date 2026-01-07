@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ["chromium", "ffmpeg"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[start]
+cmd = "node server.js"
+
+[variables]
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+PUPPETEER_EXECUTABLE_PATH = "/nix/store/chromium/bin/chromium"
