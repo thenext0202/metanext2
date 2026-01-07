@@ -359,6 +359,69 @@ app.post('/api/transcribe', async (req, res) => {
     }
 });
 
+// GPT 텍스트 교정 API
+app.post('/api/correct', async (req, res) => {
+    const { text } = req.body;
+
+    if (!text) {
+        return res.status(400).json({ error: '교정할 텍스트가 필요합니다' });
+    }
+
+    if (apiKeyPool.getKeyCount() === 0) {
+        return res.status(400).json({ error: 'API 키가 등록되지 않았습니다' });
+    }
+
+    const apiKey = apiKeyPool.getAvailableKey();
+    if (!apiKey) {
+        return res.status(400).json({ error: '사용 가능한 API 키가 없습니다' });
+    }
+
+    apiKeyPool.markInUse(apiKey);
+
+    try {
+        const OpenAI = require('openai');
+        const openai = new OpenAI({ apiKey });
+
+        console.log('[Server] GPT 교정 시작...');
+
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `당신은 음성 인식 결과를 교정하는 전문가입니다.
+
+다음 규칙을 따라 텍스트를 교정해주세요:
+1. 오타 및 맞춤법 오류 수정
+2. 잘못 인식된 발음을 문맥에 맞게 교정 (예: "갤럭시" → "갤럭시", "아이폰" → "아이폰")
+3. 브랜드명, 제품명, 전문 용어는 올바른 표기로 수정
+4. 문장 부호 적절히 추가
+5. 줄바꿈은 문단 단위로 적절히 유지
+6. 원본 내용과 의미는 절대 변경하지 말 것
+7. 교정된 텍스트만 출력 (설명 없이)`
+                },
+                {
+                    role: 'user',
+                    content: text
+                }
+            ],
+            temperature: 0.3,
+            max_tokens: 4000
+        });
+
+        apiKeyPool.markAvailable(apiKey);
+
+        const corrected = response.choices[0]?.message?.content || text;
+        console.log('[Server] GPT 교정 완료');
+
+        return res.json({ success: true, corrected });
+    } catch (error) {
+        apiKeyPool.markAvailable(apiKey);
+        console.error('[Server] GPT 교정 에러:', error.message);
+        return res.status(500).json({ error: `교정 실패: ${error.message}` });
+    }
+});
+
 // API 키 상태 확인
 app.get('/api/transcribe/status', (req, res) => {
     const status = apiKeyPool.getStatus();

@@ -1011,7 +1011,10 @@
             <div class="transcribe-section" id="transcribeSection" style="display: none;">
                 <div class="transcribe-header">
                     <h4>음성 전사 결과</h4>
-                    <button class="btn-copy-small" onclick="copyTranscript()">복사</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-copy-small" id="btnCorrect" onclick="correctTranscript()" style="background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(99,102,241,0.2)); border-color: rgba(139,92,246,0.3); color: #a78bfa;">GPT 교정</button>
+                        <button class="btn-copy-small" onclick="copyTranscript()">복사</button>
+                    </div>
                 </div>
                 <div class="transcribe-content" id="transcribeContent"></div>
             </div>
@@ -1583,6 +1586,45 @@
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
                 showSuccess('전사 내용이 복사되었습니다.');
+            }
+        }
+
+        // GPT 교정 기능
+        async function correctTranscript() {
+            if (!currentTranscript) {
+                showError('교정할 내용이 없습니다.');
+                return;
+            }
+
+            const btn = document.getElementById('btnCorrect');
+            const content = document.getElementById('transcribeContent');
+            const originalText = btn.innerHTML;
+
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0;"></div>';
+
+            try {
+                const response = await fetch('/api/correct', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: currentTranscript })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    currentTranscript = data.corrected;
+                    content.textContent = data.corrected;
+                    showSuccess('GPT 교정이 완료되었습니다.');
+                } else {
+                    showError(data.error || '교정 실패');
+                }
+            } catch (error) {
+                showError('교정 중 오류가 발생했습니다.');
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
         }
 
