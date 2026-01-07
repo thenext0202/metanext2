@@ -948,6 +948,26 @@
             </div>
         </div>
 
+        <!-- 교정 전/후 비교 모달 -->
+        <div class="modal" id="diffModal" style="display: none;">
+            <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">교정 전/후 비교</h3>
+                    <button onclick="closeDiffModal()" style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+                </div>
+                <div style="display: flex; gap: 16px; flex: 1; overflow: hidden;">
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <h4 style="color: #f87171; font-size: 0.85rem; margin-bottom: 8px;">교정 전</h4>
+                        <div id="diffBefore" style="flex: 1; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px; font-size: 0.85rem; line-height: 1.7; color: rgba(255,255,255,0.7); overflow-y: auto; white-space: pre-wrap; max-height: 400px;"></div>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <h4 style="color: #6ee7b7; font-size: 0.85rem; margin-bottom: 8px;">교정 후</h4>
+                        <div id="diffAfter" style="flex: 1; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px; font-size: 0.85rem; line-height: 1.7; color: rgba(255,255,255,0.9); overflow-y: auto; white-space: pre-wrap; max-height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 쿠키 도움말 모달 -->
         <div class="modal" id="cookieHelpModal" style="display: none;">
             <div class="modal-content">
@@ -1590,20 +1610,32 @@
         }
 
         // GPT 교정 기능
+        let originalTranscript = '';  // 교정 전 원본 저장
+        let isTranscriptCorrected = false;
+
         async function correctTranscript() {
+            const btn = document.getElementById('btnCorrect');
+
+            // 이미 교정된 상태면 비교 모달 표시
+            if (isTranscriptCorrected) {
+                showDiffModal();
+                return;
+            }
+
             if (!currentTranscript) {
                 showError('교정할 내용이 없습니다.');
                 return;
             }
 
-            const btn = document.getElementById('btnCorrect');
             const content = document.getElementById('transcribeContent');
-            const originalText = btn.innerHTML;
 
             btn.disabled = true;
             btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0;"></div>';
 
             try {
+                // 원본 저장
+                originalTranscript = currentTranscript;
+
                 const response = await fetch('/api/correct', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1615,24 +1647,57 @@
                 if (response.ok && data.success) {
                     currentTranscript = data.corrected;
                     content.textContent = data.corrected;
-                    showSuccess('GPT 교정이 완료되었습니다.');
+                    isTranscriptCorrected = true;
+
+                    // 버튼 텍스트 변경
+                    btn.innerHTML = '교정 전/후';
+                    btn.style.background = 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.2))';
+                    btn.style.borderColor = 'rgba(16,185,129,0.3)';
+                    btn.style.color = '#6ee7b7';
+
+                    showSuccess('GPT 교정 완료! 버튼을 눌러 비교해보세요.');
                 } else {
                     showError(data.error || '교정 실패');
+                    btn.innerHTML = 'GPT 교정';
                 }
             } catch (error) {
                 showError('교정 중 오류가 발생했습니다.');
                 console.error(error);
+                btn.innerHTML = 'GPT 교정';
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = originalText;
             }
         }
 
-        // 비디오 추출 성공 시 전사 섹션 숨기기
+        function showDiffModal() {
+            document.getElementById('diffBefore').textContent = originalTranscript;
+            document.getElementById('diffAfter').textContent = currentTranscript;
+            document.getElementById('diffModal').style.display = 'flex';
+        }
+
+        function closeDiffModal() {
+            document.getElementById('diffModal').style.display = 'none';
+        }
+
+        // 교정 상태 초기화 (새 비디오 추출 시)
+        function resetCorrectionState() {
+            originalTranscript = '';
+            isTranscriptCorrected = false;
+            const btn = document.getElementById('btnCorrect');
+            if (btn) {
+                btn.innerHTML = 'GPT 교정';
+                btn.style.background = 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(99,102,241,0.2))';
+                btn.style.borderColor = 'rgba(139,92,246,0.3)';
+                btn.style.color = '#a78bfa';
+            }
+        }
+
+        // 비디오 추출 성공 시 전사 섹션 숨기기 및 교정 상태 초기화
         const originalDisplayResult = displayResult;
         displayResult = function(data) {
             document.getElementById('transcribeSection').style.display = 'none';
             currentTranscript = '';
+            resetCorrectionState();
             originalDisplayResult(data);
         };
     </script>
