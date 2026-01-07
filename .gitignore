@@ -1,0 +1,5 @@
+node_modules/
+instagram_cookies.json
+downloads/
+*.log
+.DS_Store
