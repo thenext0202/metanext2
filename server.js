@@ -353,8 +353,9 @@ app.post('/api/transcribe', async (req, res) => {
         const result = await transcribeService.transcribe(videoUrl, language, prompt);
         return res.json(result);
     } catch (error) {
-        console.error('[Server] 전사 에러:', error.message);
-        return res.status(500).json({ error: `전사 실패: ${error.message}` });
+        const errorMessage = error.message || error.error?.message || '알 수 없는 오류가 발생했습니다';
+        console.error('[Server] 전사 에러:', errorMessage);
+        return res.status(500).json({ error: `전사 실패: ${errorMessage}` });
     }
 });
 

@@ -119,18 +119,30 @@ class TranscribeService {
                 apiKeyPool.markAvailable(apiKey);
                 lastError = error;
 
+                const errorStatus = error.status || error.response?.status;
+                const errorMessage = error.message || error.error?.message || '알 수 없는 오류';
+
+                console.log(`[Transcribe] API 키 ${apiKey.substring(0, 7)}... 실패: ${errorMessage} (status: ${errorStatus})`);
+
                 // Rate limit 또는 일시적 오류면 다음 키로 재시도
-                if (error.status === 429 || error.status === 500 || error.status === 503) {
-                    console.log(`[Transcribe] API 키 ${apiKey.substring(0, 7)}... 실패 (${error.status}), 다음 키로 재시도...`);
+                if (errorStatus === 429 || errorStatus === 500 || errorStatus === 503) {
+                    console.log(`[Transcribe] 다음 키로 재시도...`);
                     continue;
                 }
 
-                // 인증 오류 등은 바로 throw
-                throw error;
+                // 다른 키가 있으면 재시도
+                if (triedKeys.size < apiKeyPool.getKeyCount()) {
+                    console.log(`[Transcribe] 다른 키로 재시도... (${triedKeys.size}/${apiKeyPool.getKeyCount()})`);
+                    continue;
+                }
+
+                // 모든 키 시도 완료
+                throw new Error(errorMessage);
             }
         }
 
-        throw lastError || new Error('모든 API 키로 시도 실패');
+        const finalError = lastError?.message || lastError?.error?.message || '모든 API 키로 시도 실패';
+        throw new Error(finalError);
     }
 
     async downloadFile(url, filePath) {
