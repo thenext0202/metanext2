@@ -1099,23 +1099,37 @@
             document.getElementById('resultSection').style.display = 'block';
         }
 
-        function downloadVideo() {
+        async function downloadVideo() {
             if (!currentVideoData?.video_url) {
                 showError('다운로드할 비디오가 없습니다.');
                 return;
             }
 
-            const filename = `${currentVideoData.platform}_${Date.now()}.mp4`;
-            const downloadUrl = `/api/proxy-download?url=${encodeURIComponent(currentVideoData.video_url)}&filename=${encodeURIComponent(filename)}`;
+            const btn = document.querySelector('.btn-download');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div> 준비 중...';
 
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            try {
+                const filename = `${currentVideoData.platform}_${Date.now()}.mp4`;
+                const downloadUrl = `/api/proxy-download?url=${encodeURIComponent(currentVideoData.video_url)}&filename=${encodeURIComponent(filename)}`;
 
-            showSuccess('다운로드가 시작되었습니다.');
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                showSuccess('다운로드가 시작되었습니다.');
+            } catch (error) {
+                showError('다운로드 중 오류가 발생했습니다.');
+            } finally {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }, 1500);
+            }
         }
 
         async function copyUrl() {
@@ -1124,8 +1138,14 @@
                 return;
             }
 
+            const btn = document.querySelector('.btn-copy');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div> 복사 중...';
+
             try {
                 await navigator.clipboard.writeText(currentVideoData.video_url);
+                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 복사됨!';
                 showSuccess('비디오 URL이 클립보드에 복사되었습니다.');
             } catch (error) {
                 const textArea = document.createElement('textarea');
@@ -1134,7 +1154,13 @@
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
+                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 복사됨!';
                 showSuccess('비디오 URL이 클립보드에 복사되었습니다.');
+            } finally {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }, 1500);
             }
         }
 
