@@ -146,13 +146,21 @@ class TranscribeService {
     }
 
     async downloadFile(url, filePath) {
+        // YouTube URL인 경우 Referer 헤더 추가 (403 방지)
+        const headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        };
+
+        if (url.includes('googlevideo.com') || url.includes('youtube.com')) {
+            headers['Referer'] = 'https://www.youtube.com/';
+            headers['Origin'] = 'https://www.youtube.com';
+        }
+
         const response = await axios({
             method: 'GET',
             url: url,
             responseType: 'stream',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            },
+            headers,
             timeout: 120000
         });
 
