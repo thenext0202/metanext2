@@ -90,6 +90,40 @@ class NotionService {
         }
     }
 
+    // 블록과 그 children을 재귀적으로 복사하는 헬퍼 함수
+    async copyBlockWithChildren(client, block) {
+        // 메타데이터 제거
+        const { id, parent, created_time, last_edited_time, created_by, last_edited_by, has_children, archived, in_trash, request_id, ...rest } = block;
+
+        // children이 있으면 재귀적으로 가져오기
+        if (block.has_children && block.id) {
+            const childrenResponse = await client.blocks.children.list({
+                block_id: block.id
+            });
+
+            if (childrenResponse.results?.length > 0) {
+                const copiedChildren = await Promise.all(
+                    childrenResponse.results.map(child => this.copyBlockWithChildren(client, child))
+                );
+
+                // 블록 타입에 따라 children 설정
+                if (rest.type === 'callout' && rest.callout) {
+                    rest.callout.children = copiedChildren;
+                } else if (rest.type === 'paragraph' && rest.paragraph) {
+                    rest.paragraph.children = copiedChildren;
+                } else if (rest.type === 'bulleted_list_item' && rest.bulleted_list_item) {
+                    rest.bulleted_list_item.children = copiedChildren;
+                } else if (rest.type === 'numbered_list_item' && rest.numbered_list_item) {
+                    rest.numbered_list_item.children = copiedChildren;
+                } else if (rest.type === 'toggle' && rest.toggle) {
+                    rest.toggle.children = copiedChildren;
+                }
+            }
+        }
+
+        return rest;
+    }
+
     // 기존 페이지에 블록 추가 (2열 레이아웃 지원)
     async appendBlocksToPage(pageId, newColumn) {
         const client = this.getClient();
@@ -134,17 +168,18 @@ class NotionService {
                     if (isSecondColumnEmpty) {
                         console.log('[Notion] 빈 두 번째 열 발견 - 내용 채우기');
 
-                        // 첫 번째 column의 내용 가져오기
+                        // 첫 번째 column의 내용 가져오기 (재귀적으로 children 포함)
                         const firstColumn = columns.results[0];
                         const firstColumnContent = await client.blocks.children.list({
                             block_id: firstColumn.id
                         });
 
-                        // 기존 블록들을 새 column 형식으로 변환
-                        const existingChildren = firstColumnContent.results?.map(block => {
-                            const { id, parent, created_time, last_edited_time, created_by, last_edited_by, has_children, archived, in_trash, ...rest } = block;
-                            return rest;
-                        }) || [];
+                        // 기존 블록들을 재귀적으로 복사 (children 포함)
+                        const existingChildren = await Promise.all(
+                            (firstColumnContent.results || []).map(block =>
+                                this.copyBlockWithChildren(client, block)
+                            )
+                        );
 
                         // 기존 column_list 삭제
                         await client.blocks.delete({ block_id: lastBlock.id });
@@ -237,12 +272,13 @@ class NotionService {
         // 스크립트 텍스트를 청크로 분할
         const textChunks = this.splitText(scriptText || '', 1900);
 
-        // 내부 콜아웃 (스크립트 텍스트)
+        // 내부 콜아웃 (스크립트 텍스트) - 아이콘 없이
         const innerCallout = {
             object: 'block',
             type: 'callout',
             callout: {
                 rich_text: textChunks.length > 0 ? [{ type: 'text', text: { content: textChunks[0] } }] : [],
+                icon: { type: 'emoji', emoji: '▫️' },
                 color: 'default'
             }
         };
@@ -258,12 +294,13 @@ class NotionService {
             }));
         }
 
-        // 외부 콜아웃 (테두리 역할)
+        // 외부 콜아웃 (테두리 역할) - 아이콘 없이
         const outerCallout = {
             object: 'block',
             type: 'callout',
             callout: {
                 rich_text: [],
+                icon: { type: 'emoji', emoji: '▫️' },
                 color: 'gray_background',
                 children: [innerCallout]
             }
