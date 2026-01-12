@@ -386,7 +386,7 @@ app.post('/api/correct', async (req, res) => {
         console.log('[Server] GPT 교정 시작...');
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
@@ -462,7 +462,7 @@ app.post('/api/summarize', async (req, res) => {
         console.log('[Server] GPT 요약 시작...');
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
@@ -527,7 +527,7 @@ app.post('/api/translate', async (req, res) => {
         console.log('[Server] GPT 번역 시작...');
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
@@ -845,7 +845,7 @@ app.post('/api/generate-script', async (req, res) => {
 - 정보: ${instructor.info}`;
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
