@@ -420,7 +420,7 @@ app.post('/api/correct', async (req, res) => {
                 }
             ],
             temperature: 0.2,
-            max_tokens: 4000
+            max_completion_tokens: 4000
         });
 
         apiKeyPool.markAvailable(apiKey);
@@ -485,7 +485,7 @@ app.post('/api/summarize', async (req, res) => {
                 }
             ],
             temperature: 0.3,
-            max_tokens: 2000
+            max_completion_tokens: 2000
         });
 
         apiKeyPool.markAvailable(apiKey);
@@ -547,7 +547,7 @@ app.post('/api/translate', async (req, res) => {
                 }
             ],
             temperature: 0.3,
-            max_tokens: 4000
+            max_completion_tokens: 4000
         });
 
         apiKeyPool.markAvailable(apiKey);
@@ -857,7 +857,7 @@ app.post('/api/generate-script', async (req, res) => {
                 }
             ],
             temperature: 0.7,
-            max_tokens: 4000
+            max_completion_tokens: 4000
         });
 
         apiKeyPool.markAvailable(apiKey);
