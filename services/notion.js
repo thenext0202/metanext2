@@ -110,12 +110,12 @@ class NotionService {
         }
     }
 
-    // 비디오 + 스크립트 블록 생성 (사용자 템플릿에 맞는 구조)
+    // 비디오 + 스크립트 블록 생성 (2열 레이아웃)
     createVideoScriptBlock(videoUrl, scriptText) {
         // 스크립트 텍스트를 청크로 분할
         const textChunks = this.splitText(scriptText || '', 1900);
 
-        // 내부 콜아웃
+        // 내부 콜아웃 (스크립트 텍스트)
         const innerCallout = {
             object: 'block',
             type: 'callout',
@@ -136,8 +136,8 @@ class NotionService {
             }));
         }
 
-        // 외부 콜아웃
-        const calloutBlock = {
+        // 외부 콜아웃 (테두리 역할)
+        const outerCallout = {
             object: 'block',
             type: 'callout',
             callout: {
@@ -165,7 +165,24 @@ class NotionService {
             }
         };
 
-        return [videoBlock, calloutBlock];
+        // 2열 레이아웃: column_list > column (비디오) + column (콜아웃)
+        const columnList = {
+            object: 'block',
+            type: 'column_list',
+            column_list: {
+                children: [
+                    {
+                        object: 'block',
+                        type: 'column',
+                        column: {
+                            children: [videoBlock, outerCallout]
+                        }
+                    }
+                ]
+            }
+        };
+
+        return [columnList];
     }
 
     async saveToNotion(data) {
