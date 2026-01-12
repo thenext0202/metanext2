@@ -14,6 +14,7 @@ const TranscribeService = require('./services/transcribe');
 const apiKeyPool = require('./services/apiKeyPool');
 const supabase = require('./services/supabase');
 const notionService = require('./services/notion');
+const googleDriveService = require('./services/googleDrive');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -333,7 +334,7 @@ initAPIKeyPool();
 
 // 음성 전사 API
 app.post('/api/transcribe', async (req, res) => {
-    const { videoUrl, language = 'ko', prompt = '' } = req.body;
+    const { videoUrl, language = 'ko', prompt = '', uploadToGoogleDrive = false, videoTitle = 'video' } = req.body;
 
     if (!videoUrl) {
         return res.status(400).json({ error: '비디오 URL이 필요합니다' });
@@ -348,10 +349,18 @@ app.post('/api/transcribe', async (req, res) => {
     try {
         console.log('[Server] 전사 시작:', videoUrl.substring(0, 50) + '...');
         console.log('[Server] API 키 풀 상태:', apiKeyPool.getStatus());
+        console.log('[Server] Google Drive 업로드:', uploadToGoogleDrive);
         if (prompt) {
             console.log('[Server] Prompt 힌트:', prompt.substring(0, 100));
         }
-        const result = await transcribeService.transcribe(videoUrl, language, prompt);
+
+        // Google Drive 업로드 옵션과 함께 전사
+        const result = await transcribeService.transcribe(videoUrl, language, prompt, {
+            uploadToGoogleDrive,
+            videoTitle,
+            googleDriveService: uploadToGoogleDrive ? googleDriveService : null
+        });
+
         return res.json(result);
     } catch (error) {
         const errorMessage = error.message || error.error?.message || '알 수 없는 오류가 발생했습니다';
@@ -618,6 +627,58 @@ app.delete('/api/openai/key/:index', async (req, res) => {
     } catch (error) {
         console.error('API 키 삭제 에러:', error.message);
         return res.status(400).json({ error: error.message });
+    }
+});
+
+// ===== Google Drive API =====
+
+// Google Drive 상태 확인
+app.get('/api/google/status', (req, res) => {
+    const status = googleDriveService.getStatus();
+    return res.json(status);
+});
+
+// Google OAuth 인증 URL 가져오기
+app.get('/api/google/auth-url', (req, res) => {
+    const url = googleDriveService.getAuthUrl();
+    if (!url) {
+        return res.status(400).json({ error: 'Google OAuth 설정이 필요합니다.' });
+    }
+    return res.json({ url });
+});
+
+// Google OAuth 콜백
+app.get('/api/google/callback', async (req, res) => {
+    const { code } = req.query;
+
+    if (!code) {
+        return res.status(400).send('인증 코드가 없습니다.');
+    }
+
+    try {
+        await googleDriveService.handleCallback(code);
+        // 인증 성공 후 메인 페이지로 리다이렉트
+        res.redirect('/?google_auth=success');
+    } catch (error) {
+        console.error('[GoogleDrive] OAuth 에러:', error.message);
+        res.redirect('/?google_auth=error');
+    }
+});
+
+// 동영상 업로드 (수동)
+app.post('/api/google/upload', async (req, res) => {
+    const { filePath, fileName } = req.body;
+
+    if (!filePath) {
+        return res.status(400).json({ error: '파일 경로가 필요합니다.' });
+    }
+
+    try {
+        const result = await googleDriveService.uploadVideo(filePath, fileName || 'video.mp4');
+        return res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('[GoogleDrive] 업로드 에러:', error.message);
+        return res.status(500).json({ error: error.message });
     }
 });
 

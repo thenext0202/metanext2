@@ -26,12 +26,15 @@ class TranscribeService {
         }
     }
 
-    async transcribe(videoUrl, language = '', prompt = '') {
+    async transcribe(videoUrl, language = '', prompt = '', options = {}) {
+        const { uploadToGoogleDrive = false, videoTitle = 'video', googleDriveService = null } = options;
+
         // UUID로 파일명 생성 (동시 요청 충돌 방지)
         const fileId = uuidv4();
         const videoPath = path.join(this.tempDir, `video_${fileId}.mp4`);
         const audioPath = path.join(this.tempDir, `audio_${fileId}.mp3`);
         const chunkPaths = [];
+        let googleDriveUrl = null;
 
         try {
             // HLS 스트림(m3u8)인 경우 ffmpeg로 직접 처리
@@ -39,6 +42,11 @@ class TranscribeService {
 
             if (isHLS) {
                 console.log('[Transcribe] HLS 스트림 감지 - ffmpeg로 직접 오디오 추출...');
+                // HLS의 경우 Google Drive 업로드를 위해 비디오도 다운로드
+                if (uploadToGoogleDrive && googleDriveService) {
+                    console.log('[Transcribe] HLS 비디오 다운로드 (Google Drive용)...');
+                    await this.downloadHLSVideo(videoUrl, videoPath);
+                }
                 await this.extractAudioFromStream(videoUrl, audioPath);
             } else {
                 console.log('[Transcribe] 비디오 다운로드 중...');
@@ -46,6 +54,21 @@ class TranscribeService {
 
                 console.log('[Transcribe] 오디오 추출 중...');
                 await this.extractAudio(videoPath, audioPath);
+            }
+
+            // Google Drive 업로드 (전사와 병렬로 처리하지 않고 먼저 업로드)
+            if (uploadToGoogleDrive && googleDriveService && fs.existsSync(videoPath)) {
+                try {
+                    console.log('[Transcribe] Google Drive 업로드 중...');
+                    const timestamp = new Date().toISOString().slice(0, 10);
+                    const fileName = `${videoTitle}_${timestamp}.mp4`;
+                    const uploadResult = await googleDriveService.uploadVideo(videoPath, fileName);
+                    googleDriveUrl = uploadResult.directUrl;
+                    console.log('[Transcribe] Google Drive 업로드 완료:', googleDriveUrl);
+                } catch (uploadError) {
+                    console.error('[Transcribe] Google Drive 업로드 실패:', uploadError.message);
+                    // 업로드 실패해도 전사는 계속 진행
+                }
             }
 
             // 파일 크기 확인 (24MB 제한, 여유 두기)
@@ -89,7 +112,8 @@ class TranscribeService {
             return {
                 success: true,
                 text: transcriptionText,
-                language: language
+                language: language,
+                googleDriveUrl: googleDriveUrl
             };
 
         } catch (error) {
@@ -302,6 +326,41 @@ class TranscribeService {
                 } else {
                     console.error('[Transcribe] HLS ffmpeg stderr:', stderrData.slice(-500));
                     reject(new Error(`HLS 오디오 추출 실패: exit code ${code}`));
+                }
+            });
+
+            ffmpeg.on('error', (err) => {
+                reject(new Error(`ffmpeg 실행 실패: ${err.message}`));
+            });
+        });
+    }
+
+    // HLS 스트림을 비디오 파일로 다운로드
+    async downloadHLSVideo(streamUrl, videoPath) {
+        return new Promise((resolve, reject) => {
+            console.log(`[Transcribe] ffmpeg로 HLS 스트림을 비디오로 다운로드...`);
+
+            const ffmpeg = spawn(ffmpegPath, [
+                '-i', streamUrl,
+                '-c', 'copy',           // 코덱 복사 (빠름)
+                '-bsf:a', 'aac_adtstoasc',
+                '-t', '3600',           // 최대 60분
+                '-y',
+                videoPath
+            ]);
+
+            let stderrData = '';
+            ffmpeg.stderr.on('data', (data) => {
+                stderrData += data.toString();
+            });
+
+            ffmpeg.on('close', (code) => {
+                if (code === 0) {
+                    console.log('[Transcribe] HLS 비디오 다운로드 성공');
+                    resolve();
+                } else {
+                    console.error('[Transcribe] HLS 비디오 다운로드 실패:', stderrData.slice(-500));
+                    reject(new Error(`HLS 비디오 다운로드 실패: exit code ${code}`));
                 }
             });
 
