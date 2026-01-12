@@ -1097,15 +1097,24 @@
                         </h4>
                         <div style="display: flex; gap: 8px;">
                             <button class="btn-copy-small" onclick="copyGeneratedScript()">복사</button>
-                            <button class="btn-copy-small" id="btnSaveNotion" onclick="saveToNotion()" style="background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.4)); border-color: rgba(255,255,255,0.2); color: #fff; display: none;">
-                                <svg width="14" height="14" viewBox="0 0 100 100" fill="currentColor" style="margin-right: 4px;">
-                                    <path d="M6.017 4.313l55.333 -4.087c6.797 -0.583 8.543 -0.19 12.817 2.917l17.663 12.443c2.913 2.14 3.883 2.723 3.883 5.053v68.243c0 4.277 -1.553 6.807 -6.99 7.193l-64.25 3.888c-4.083 0.193 -6.023 -0.39 -8.16 -3.113l-12.433 -16.136c-2.333 -3.107 -3.307 -5.443 -3.307 -8.167v-65.607c0 -3.497 1.553 -6.413 5.443 -6.627zm54.953 9.953c0 -0.633 0.193 -0.927 0.927 -1.017l-48.443 3.307c-2.527 0.193 -3.303 0.583 -3.303 2.14v60.077c0 1.36 0.58 2.14 1.36 2.14l51.69 -3.11c0.927 -0.097 1.167 -0.583 1.167 -1.36v-56.777c0 -0.583 -0.387 -1.36 -1.36 -1.36l-2.04 0.193v-4.233z"/>
-                                </svg>
-                                Notion 저장
-                            </button>
                         </div>
                     </div>
                     <div id="generatedScriptContent" style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.15); border-radius: 12px; padding: 20px; color: rgba(255,255,255,0.85); line-height: 1.8; font-size: 0.9rem; max-height: 300px; overflow-y: auto; white-space: pre-wrap;"></div>
+
+                    <!-- Notion 저장 섹션 -->
+                    <div id="notionSaveSection" style="display: none; margin-top: 16px; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <svg width="18" height="18" viewBox="0 0 100 100" fill="rgba(255,255,255,0.7)">
+                                <path d="M6.017 4.313l55.333 -4.087c6.797 -0.583 8.543 -0.19 12.817 2.917l17.663 12.443c2.913 2.14 3.883 2.723 3.883 5.053v68.243c0 4.277 -1.553 6.807 -6.99 7.193l-64.25 3.888c-4.083 0.193 -6.023 -0.39 -8.16 -3.113l-12.433 -16.136c-2.333 -3.107 -3.307 -5.443 -3.307 -8.167v-65.607c0 -3.497 1.553 -6.413 5.443 -6.627z"/>
+                            </svg>
+                            <span style="color: rgba(255,255,255,0.8); font-weight: 500; font-size: 0.9rem;">Notion에 저장</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="notionDbUrl" placeholder="Notion 데이터베이스 URL 붙여넣기" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; outline: none;">
+                            <button id="btnSaveNotionNew" onclick="saveToNotionWithUrl()" style="padding: 10px 20px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap;">저장</button>
+                        </div>
+                        <p style="color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-top: 8px; margin-bottom: 0;">예: https://www.notion.so/workspace/데이터베이스ID?v=...</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1428,6 +1437,7 @@
                     document.getElementById('generatedInstructorName').textContent = data.instructor;
                     document.getElementById('generatedScriptContent').textContent = data.script;
                     document.getElementById('generatedScriptSection').style.display = 'block';
+                    document.getElementById('notionSaveSection').style.display = 'block';
                     showSuccess(`${data.instructor} 버전 스크립트가 생성되었습니다.`);
                 } else {
                     showError(data.error || '스크립트 생성 실패');
@@ -1495,10 +1505,47 @@
             }
         }
 
-        // Notion에 저장
-        async function saveToNotion() {
-            if (!notionAvailable) {
-                showError('Notion 연동이 비활성화 상태입니다.');
+        // Notion URL에서 데이터베이스 ID 추출
+        function extractNotionDatabaseId(url) {
+            try {
+                // URL 형식: https://www.notion.so/workspace/DATABASE_ID?v=...
+                // 또는: https://www.notion.so/DATABASE_ID?v=...
+                const urlObj = new URL(url);
+                const pathname = urlObj.pathname;
+
+                // 경로에서 마지막 세그먼트 추출 (32자 hex 문자열)
+                const segments = pathname.split('/').filter(s => s);
+                const lastSegment = segments[segments.length - 1];
+
+                // 32자 hex 문자열인지 확인 (하이픈 없는 UUID)
+                if (lastSegment && /^[a-f0-9]{32}$/i.test(lastSegment)) {
+                    return lastSegment;
+                }
+
+                // 하이픈 포함된 UUID 형식도 체크
+                if (lastSegment && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(lastSegment)) {
+                    return lastSegment.replace(/-/g, '');
+                }
+
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Notion에 저장 (URL 직접 입력)
+        async function saveToNotionWithUrl() {
+            const urlInput = document.getElementById('notionDbUrl');
+            const notionUrl = urlInput.value.trim();
+
+            if (!notionUrl) {
+                showError('Notion 데이터베이스 URL을 입력해주세요.');
+                return;
+            }
+
+            const databaseId = extractNotionDatabaseId(notionUrl);
+            if (!databaseId) {
+                showError('올바른 Notion 데이터베이스 URL을 입력해주세요.');
                 return;
             }
 
@@ -1507,7 +1554,7 @@
                 return;
             }
 
-            const btn = document.getElementById('btnSaveNotion');
+            const btn = document.getElementById('btnSaveNotionNew');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0;"></div>';
             btn.disabled = true;
@@ -1519,6 +1566,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        databaseId: databaseId,
                         videoUrl: currentVideoData?.video_url || currentVideoData?.url || '',
                         videoTitle: `[${instructorName}] ${currentVideoData?.title || '제목 없음'}`,
                         platform: currentVideoData?.platform || 'Unknown',
@@ -1529,13 +1577,11 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    showSuccess('Notion에 저장되었습니다!');
+                    alert('Notion에 저장되었습니다!');
                     if (data.pageUrl) {
-                        setTimeout(() => {
-                            if (confirm('Notion 페이지를 열까요?')) {
-                                window.open(data.pageUrl, '_blank');
-                            }
-                        }, 500);
+                        if (confirm('Notion 페이지를 열까요?')) {
+                            window.open(data.pageUrl, '_blank');
+                        }
                     }
                 } else {
                     showError(data.error || 'Notion 저장에 실패했습니다.');

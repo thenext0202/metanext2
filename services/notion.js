@@ -20,11 +20,13 @@ class NotionService {
     }
 
     async saveToNotion(data) {
-        if (!this.enabled) {
-            throw new Error('Notion 서비스가 비활성화 상태입니다.');
+        const token = process.env.NOTION_API_TOKEN;
+        if (!token) {
+            throw new Error('Notion API 토큰이 설정되지 않았습니다.');
         }
 
         const {
+            databaseId,
             videoUrl,
             videoTitle,
             platform,
@@ -33,6 +35,15 @@ class NotionService {
             summary,
             translatedText
         } = data;
+
+        if (!databaseId) {
+            throw new Error('데이터베이스 ID가 필요합니다.');
+        }
+
+        // 클라이언트가 없거나 다른 DB를 사용하는 경우 새로 생성
+        if (!this.client) {
+            this.client = new Client({ auth: token });
+        }
 
         try {
             // 기본 속성 (제목은 필수)
@@ -155,7 +166,7 @@ class NotionService {
             }
 
             const response = await this.client.pages.create({
-                parent: { database_id: this.databaseId },
+                parent: { database_id: databaseId },
                 properties,
                 children: children.length > 0 ? children : undefined
             });
@@ -212,9 +223,10 @@ class NotionService {
     }
 
     getStatus() {
+        const hasToken = !!process.env.NOTION_API_TOKEN;
         return {
-            enabled: this.enabled,
-            hasDatabaseId: !!this.databaseId
+            enabled: hasToken,
+            hasToken: hasToken
         };
     }
 }

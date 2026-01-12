@@ -826,10 +826,10 @@ app.get('/api/notion/status', (req, res) => {
 
 // Notion에 저장
 app.post('/api/notion/save', async (req, res) => {
-    const { videoUrl, videoTitle, platform, transcript, correctedText, summary, translatedText } = req.body;
+    const { databaseId, videoUrl, videoTitle, platform, transcript, correctedText, summary, translatedText } = req.body;
 
-    if (!notionService.enabled) {
-        return res.status(400).json({ error: 'Notion 서비스가 비활성화 상태입니다.' });
+    if (!databaseId) {
+        return res.status(400).json({ error: 'Notion 데이터베이스 ID가 필요합니다.' });
     }
 
     if (!transcript && !correctedText && !summary && !translatedText) {
@@ -837,8 +837,9 @@ app.post('/api/notion/save', async (req, res) => {
     }
 
     try {
-        console.log('[Server] Notion 저장 시작...');
+        console.log('[Server] Notion 저장 시작... DB:', databaseId);
         const result = await notionService.saveToNotion({
+            databaseId,
             videoUrl,
             videoTitle,
             platform,
