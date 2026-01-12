@@ -37,23 +37,34 @@ class NotionService {
             const token = process.env.NOTION_API_TOKEN;
             const notionClient = new Client({ auth: token });
 
-            console.log('[Notion] 클라이언트 타입:', typeof notionClient);
-            console.log('[Notion] databases 타입:', typeof notionClient.databases);
-            console.log('[Notion] databases.query 타입:', typeof notionClient.databases?.query);
+            // databases 객체의 사용 가능한 메서드 확인
+            console.log('[Notion] databases 메서드:', Object.keys(notionClient.databases || {}));
 
-            // 데이터베이스의 모든 페이지 조회
-            const response = await notionClient.databases.query({
-                database_id: databaseId
+            // search API 사용 (databases.query 대신)
+            const response = await notionClient.search({
+                filter: {
+                    property: 'object',
+                    value: 'page'
+                }
             });
 
             console.log('[Notion] 검색 결과 개수:', response.results?.length || 0);
 
             if (response.results && response.results.length > 0) {
+                // 해당 데이터베이스의 페이지만 필터링
+                const dbPages = response.results.filter(page => {
+                    const parentDbId = page.parent?.database_id?.replace(/-/g, '');
+                    const targetDbId = databaseId.replace(/-/g, '');
+                    return parentDbId === targetDbId;
+                });
+
+                console.log('[Notion] DB 페이지 개수:', dbPages.length);
+
                 // "XXX 강사 보드" 형태의 페이지 찾기
-                for (const page of response.results) {
+                for (const page of dbPages) {
                     // 제목 속성 찾기 (어떤 이름이든)
                     let pageTitle = '';
-                    for (const [propName, propValue] of Object.entries(page.properties)) {
+                    for (const [propName, propValue] of Object.entries(page.properties || {})) {
                         if (propValue.type === 'title' && propValue.title?.length > 0) {
                             pageTitle = propValue.title[0].plain_text || '';
                             break;
