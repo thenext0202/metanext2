@@ -272,39 +272,14 @@ class NotionService {
         // 스크립트 텍스트를 청크로 분할
         const textChunks = this.splitText(scriptText || '', 1900);
 
-        // 내부 콜아웃 (스크립트 텍스트) - 아이콘 없이
-        const innerCallout = {
+        // 텍스트 블록들 생성
+        const textBlocks = textChunks.map(chunk => ({
             object: 'block',
-            type: 'callout',
-            callout: {
-                rich_text: textChunks.length > 0 ? [{ type: 'text', text: { content: textChunks[0] } }] : [],
-                icon: { type: 'emoji', emoji: '▫️' },
-                color: 'default'
+            type: 'paragraph',
+            paragraph: {
+                rich_text: [{ type: 'text', text: { content: chunk } }]
             }
-        };
-
-        // 긴 텍스트면 추가 paragraph 블록
-        if (textChunks.length > 1) {
-            innerCallout.callout.children = textChunks.slice(1).map(chunk => ({
-                object: 'block',
-                type: 'paragraph',
-                paragraph: {
-                    rich_text: [{ type: 'text', text: { content: chunk } }]
-                }
-            }));
-        }
-
-        // 외부 콜아웃 (테두리 역할) - 아이콘 없이
-        const outerCallout = {
-            object: 'block',
-            type: 'callout',
-            callout: {
-                rich_text: [],
-                icon: { type: 'emoji', emoji: '▫️' },
-                color: 'gray_background',
-                children: [innerCallout]
-            }
-        };
+        }));
 
         // 동영상 블록
         const videoBlock = videoUrl ? {
@@ -324,8 +299,8 @@ class NotionService {
             }
         };
 
-        // column 내용물 반환 (비디오 + 콜아웃)
-        return [videoBlock, outerCallout];
+        // column 내용물 반환 (비디오 + 텍스트들)
+        return [videoBlock, ...textBlocks];
     }
 
     async saveToNotion(data) {
