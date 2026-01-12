@@ -419,7 +419,6 @@ app.post('/api/correct', async (req, res) => {
                     content: text
                 }
             ],
-            temperature: 0.2,
             max_completion_tokens: 4000
         });
 
@@ -484,7 +483,6 @@ app.post('/api/summarize', async (req, res) => {
                     content: text
                 }
             ],
-            temperature: 0.3,
             max_completion_tokens: 2000
         });
 
@@ -546,7 +544,6 @@ app.post('/api/translate', async (req, res) => {
                     content: text
                 }
             ],
-            temperature: 0.3,
             max_completion_tokens: 4000
         });
 
@@ -856,7 +853,6 @@ app.post('/api/generate-script', async (req, res) => {
                     content: `다음 스크립트를 위 강사 정보에 맞게 변환해주세요:\n\n${transcript}`
                 }
             ],
-            temperature: 0.7,
             max_completion_tokens: 4000
         });
 
