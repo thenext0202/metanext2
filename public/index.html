@@ -2370,6 +2370,7 @@
 
         async function correctTranscript() {
             const btn = document.getElementById('btnCorrect');
+            const generateBtn = document.getElementById('btnGenerateScript');
 
             // 이미 교정된 상태면 비교 모달 표시
             if (isTranscriptCorrected) {
@@ -2386,6 +2387,13 @@
 
             btn.disabled = true;
             btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0;"></div>';
+
+            // 교정 중에는 스크립트 생성 버튼 비활성화
+            if (generateBtn) {
+                generateBtn.disabled = true;
+                generateBtn.style.opacity = '0.5';
+                generateBtn.style.cursor = 'not-allowed';
+            }
 
             try {
                 // 원본 저장
@@ -2421,6 +2429,12 @@
                 btn.innerHTML = 'GPT 교정';
             } finally {
                 btn.disabled = false;
+                // 스크립트 생성 버튼 다시 활성화
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.style.opacity = '1';
+                    generateBtn.style.cursor = 'pointer';
+                }
             }
         }
 
