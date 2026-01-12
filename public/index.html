@@ -1606,7 +1606,8 @@
                         videoUrl: currentVideoData?.video_url || currentVideoData?.url || '',
                         videoTitle: `[${instructorName}] ${currentVideoData?.title || '제목 없음'}`,
                         platform: currentVideoData?.platform || 'Unknown',
-                        transcript: generatedScript
+                        correctedText: generatedScript,
+                        instructorName: instructorName
                     })
                 });
 

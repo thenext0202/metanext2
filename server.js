@@ -886,7 +886,7 @@ app.get('/api/notion/status', (req, res) => {
 
 // Notion에 저장
 app.post('/api/notion/save', async (req, res) => {
-    const { databaseId, videoUrl, videoTitle, platform, transcript, correctedText, summary, translatedText } = req.body;
+    const { databaseId, videoUrl, videoTitle, platform, transcript, correctedText, summary, translatedText, instructorName } = req.body;
 
     if (!databaseId) {
         return res.status(400).json({ error: 'Notion 데이터베이스 ID가 필요합니다.' });
@@ -906,7 +906,8 @@ app.post('/api/notion/save', async (req, res) => {
             transcript,
             correctedText,
             summary,
-            translatedText
+            translatedText,
+            instructorName
         });
 
         console.log('[Server] Notion 저장 완료:', result.url);
