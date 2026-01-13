@@ -2256,9 +2256,13 @@
             document.getElementById('batchProgressText').textContent = `${current} / ${total} 처리 중...`;
         }
 
+        // 배치 결과 데이터 저장 (모달용)
+        let batchResultsData = [];
+
         function renderBatchItems(items) {
             const container = document.getElementById('batchItems');
             container.innerHTML = '';
+            batchResultsData = items; // 데이터 저장
 
             items.forEach((item, index) => {
                 const statusIcon = getBatchStatusIcon(item.status);
@@ -2276,7 +2280,12 @@
                 }
 
                 const notionLink = item.notionUrl
-                    ? `<a href="${item.notionUrl}" target="_blank" class="batch-item-link">Notion 열기</a>`
+                    ? `<a href="${item.notionUrl}" target="_blank" class="batch-item-link">Notion</a>`
+                    : '';
+
+                // 성공한 항목에 원본 보기 버튼 추가
+                const viewBtn = item.status === 'success' && item.originalTranscript
+                    ? `<button class="batch-item-view-btn" onclick="showBatchTranscriptModal(${index})">원본 보기</button>`
                     : '';
 
                 container.innerHTML += `
@@ -2288,10 +2297,28 @@
                             <div class="batch-item-url">${truncateUrl(item.url)}</div>
                             <div class="batch-item-detail">${detailText}</div>
                         </div>
-                        ${notionLink}
+                        <div class="batch-item-actions">
+                            ${viewBtn}
+                            ${notionLink}
+                        </div>
                     </div>
                 `;
             });
+        }
+
+        // 배치 결과 원본 텍스트 모달 표시
+        function showBatchTranscriptModal(index) {
+            const item = batchResultsData[index];
+            if (!item) return;
+
+            document.getElementById('batchModalTitle').textContent = item.title || '원본 전사 텍스트';
+            document.getElementById('batchModalOriginal').textContent = item.originalTranscript || '(없음)';
+            document.getElementById('batchModalGenerated').textContent = item.generatedScript || '(없음)';
+            document.getElementById('batchTranscriptModal').classList.add('active');
+        }
+
+        function closeBatchTranscriptModal() {
+            document.getElementById('batchTranscriptModal').classList.remove('active');
         }
 
         function getBatchStatusIcon(status) {
@@ -4054,5 +4081,41 @@
             originalDisplayResult(data);
         };
     </script>
+
+    <!-- 배치 결과 원본/생성 텍스트 비교 모달 -->
+    <div class="modal" id="batchTranscriptModal" style="display: none;">
+        <div class="modal-content" style="max-width: 900px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 id="batchModalTitle" style="margin: 0;">원본 vs 생성 스크립트</h3>
+                <button onclick="closeBatchTranscriptModal()" style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+            </div>
+            <div style="display: flex; gap: 16px; flex: 1; overflow: hidden;">
+                <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #ff6b6b;">원본 전사 텍스트</div>
+                    <div id="batchModalOriginal" style="flex: 1; background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); border-radius: 8px; padding: 12px; overflow-y: auto; font-size: 13px; line-height: 1.6; white-space: pre-wrap;"></div>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #51cf66;">생성된 스크립트</div>
+                    <div id="batchModalGenerated" style="flex: 1; background: rgba(81,207,102,0.1); border: 1px solid rgba(81,207,102,0.3); border-radius: 8px; padding: 12px; overflow-y: auto; font-size: 13px; line-height: 1.6; white-space: pre-wrap;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        #batchTranscriptModal.active { display: flex !important; }
+        .batch-item-actions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+        .batch-item-view-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .batch-item-view-btn:hover { background: rgba(255,255,255,0.2); }
+    </style>
 </body>
 </html>

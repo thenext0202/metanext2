@@ -1380,7 +1380,9 @@ ${transcribeResult.text}`
                     status: 'success',
                     title: data.extractResult.title,
                     platform: data.extractResult.platform,
-                    notionUrl: notionResult.url
+                    notionUrl: notionResult.url,
+                    originalTranscript: data.transcribeResult.text,
+                    generatedScript: data.generatedScript
                 }
             });
         } catch (notionError) {
