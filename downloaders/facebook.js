@@ -51,21 +51,29 @@ class FacebookDownloader {
 
             // 페이지 로드
             console.log('[Facebook] 페이지 로드 중...');
-            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-            // 추가 대기
+            // 페이지 로드 후 대기
             await page.waitForTimeout(3000);
 
-            // 비디오 클릭 시도
+            // 비디오 요소 찾기 및 클릭 시도
             try {
-                const videoElement = await page.$('video');
-                if (videoElement) {
-                    await videoElement.click();
-                    await page.waitForTimeout(2000);
+                // 비디오 재생 버튼 클릭 시도
+                const playButton = await page.$('[aria-label="Play"]') ||
+                                   await page.$('[data-testid="video-player-play-button"]') ||
+                                   await page.$('video');
+                if (playButton) {
+                    console.log('[Facebook] 비디오 재생 버튼 클릭 시도...');
+                    await playButton.click();
+                    await page.waitForTimeout(3000);
                 }
             } catch (e) {
                 console.log('[Facebook] 비디오 클릭 실패 (무시)');
             }
+
+            // 스크롤해서 추가 컨텐츠 로드
+            await page.evaluate(() => window.scrollBy(0, 500));
+            await page.waitForTimeout(2000);
 
             // HTML에서 추가 URL 추출
             const htmlContent = await page.content();
@@ -116,12 +124,17 @@ class FacebookDownloader {
 
         // Facebook CDN 비디오 URL 패턴
         const patterns = [
-            /https:\/\/video[^"']*\.fbcdn\.net[^"']*\.mp4[^"']*/g,
-            /https:\/\/[^"']*fbcdn\.net\/v\/[^"']+/g,
+            /https:\/\/video[^"'\s]*\.fbcdn\.net[^"'\s]*/g,
+            /https:\/\/[^"'\s]*fbcdn\.net\/v\/[^"'\s]+/g,
+            /https:\/\/[^"'\s]*fbcdn\.net\/o1\/v\/[^"'\s]+/g,
             /"playable_url"\s*:\s*"([^"]+)"/g,
             /"playable_url_quality_hd"\s*:\s*"([^"]+)"/g,
             /"browser_native_hd_url"\s*:\s*"([^"]+)"/g,
             /"browser_native_sd_url"\s*:\s*"([^"]+)"/g,
+            /"video_url"\s*:\s*"([^"]+)"/g,
+            /"hd_src"\s*:\s*"([^"]+)"/g,
+            /"sd_src"\s*:\s*"([^"]+)"/g,
+            /"progressive"\s*:\s*\[.*?"url"\s*:\s*"([^"]+)"/g,
         ];
 
         for (const pattern of patterns) {
@@ -170,19 +183,46 @@ class FacebookDownloader {
         // 중복 제거
         const uniqueUrls = [...new Set(urls)];
 
+        // 이미지 URL 제외 (jpg, png, gif, webp 등)
+        const videoUrls = uniqueUrls.filter(u => {
+            const lower = u.toLowerCase();
+            // 이미지 확장자 제외
+            if (lower.includes('.jpg') || lower.includes('.jpeg') ||
+                lower.includes('.png') || lower.includes('.gif') ||
+                lower.includes('.webp') || lower.includes('.svg')) {
+                return false;
+            }
+            // scontent는 보통 이미지, video-로 시작하는건 비디오
+            if (lower.includes('scontent') && !lower.includes('.mp4')) {
+                return false;
+            }
+            return true;
+        });
+
+        console.log(`[Facebook] 필터링 후 비디오 URL 수: ${videoUrls.length}`);
+
+        if (!videoUrls.length) {
+            console.log('[Facebook] 비디오 URL을 찾을 수 없습니다 (이미지만 발견)');
+            return null;
+        }
+
         // HD 우선
-        const hdUrls = uniqueUrls.filter(u =>
+        const hdUrls = videoUrls.filter(u =>
             u.toLowerCase().includes('hd') || u.includes('quality_hd')
         );
         if (hdUrls.length) return hdUrls[0];
 
         // .mp4 포함 URL 우선
-        const mp4Urls = uniqueUrls.filter(u => u.includes('.mp4'));
+        const mp4Urls = videoUrls.filter(u => u.includes('.mp4'));
         if (mp4Urls.length) {
             return mp4Urls.reduce((a, b) => a.length > b.length ? a : b);
         }
 
-        return uniqueUrls[0];
+        // video- 로 시작하는 CDN URL 우선
+        const videoCdnUrls = videoUrls.filter(u => u.includes('video-') || u.includes('video.'));
+        if (videoCdnUrls.length) return videoCdnUrls[0];
+
+        return videoUrls[0];
     }
 
     static isValidUrl(url) {
