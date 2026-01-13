@@ -389,7 +389,7 @@ app.post('/api/correct', async (req, res) => {
         console.log('[Server] GPT 교정 시작...');
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-5-mini',
+            model: 'gpt-5.2',
             messages: [
                 {
                     role: 'system',
@@ -464,7 +464,7 @@ app.post('/api/summarize', async (req, res) => {
         console.log('[Server] GPT 요약 시작...');
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-5-mini',
+            model: 'gpt-5.2',
             messages: [
                 {
                     role: 'system',
@@ -528,7 +528,7 @@ app.post('/api/translate', async (req, res) => {
         console.log('[Server] GPT 번역 시작...');
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-5-mini',
+            model: 'gpt-5.2',
             messages: [
                 {
                     role: 'system',
@@ -993,7 +993,7 @@ app.post('/api/generate-script', async (req, res) => {
 - 정보: ${instructor.info}`;
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-5-mini',
+            model: 'gpt-5.2',
             messages: [
                 {
                     role: 'system',
@@ -1178,30 +1178,36 @@ app.post('/api/batch-process', async (req, res) => {
 
             console.log(`[Batch] [${index + 1}] 전사 완료: ${transcribeResult.text.length}자`);
 
-            // 3. 스크립트 생성
-            const apiKey = apiKeyPool.getAvailableKey();
-            if (!apiKey) {
-                return { url: trimmedUrl, status: 'failed', error: '사용 가능한 API 키 없음' };
-            }
+            // 3. 스크립트 생성 (최대 3회 재시도)
+            const MAX_SCRIPT_RETRIES = 3;
+            let generatedScript = '';
+            let scriptRetryCount = 0;
 
-            apiKeyPool.markInUse(apiKey);
+            while (scriptRetryCount < MAX_SCRIPT_RETRIES) {
+                const apiKey = apiKeyPool.getAvailableKey();
+                if (!apiKey) {
+                    return { url: trimmedUrl, status: 'failed', error: '사용 가능한 API 키 없음' };
+                }
 
-            const OpenAI = require('openai');
-            const openai = new OpenAI({ apiKey });
+                apiKeyPool.markInUse(apiKey);
 
-            const systemPrompt = `${prompt}
+                try {
+                    const OpenAI = require('openai');
+                    const openai = new OpenAI({ apiKey });
+
+                    const systemPrompt = `${prompt}
 
 ## 강사 정보
 - 이름: ${instructor.name}
 - 정보: ${instructor.info}`;
 
-            const gptResponse = await openai.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    {
-                        role: 'user',
-                        content: `다음은 음성 인식으로 생성된 스크립트입니다.
+                    const gptResponse = await openai.chat.completions.create({
+                        model: 'gpt-5.2',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            {
+                                role: 'user',
+                                content: `다음은 음성 인식으로 생성된 스크립트입니다.
 
 아래 작업을 수행하고 **최종 결과물만** 출력해주세요:
 - 오타, 맞춤법, 띄어쓰기 수정
@@ -1213,15 +1219,40 @@ app.post('/api/batch-process', async (req, res) => {
 
 원본 스크립트:
 ${transcribeResult.text}`
+                            }
+                        ],
+                        max_completion_tokens: 4000
+                    });
+
+                    apiKeyPool.markAvailable(apiKey);
+
+                    generatedScript = gptResponse.choices[0]?.message?.content || '';
+
+                    // 스크립트가 비어있거나 너무 짧으면 재시도
+                    if (generatedScript && generatedScript.trim().length > 50) {
+                        console.log(`[Batch] [${index + 1}] 스크립트 생성 완료 (${generatedScript.length}자)`);
+                        break;
+                    } else {
+                        scriptRetryCount++;
+                        console.warn(`[Batch] [${index + 1}] 스크립트 생성 실패 (빈 응답) - 재시도 ${scriptRetryCount}/${MAX_SCRIPT_RETRIES}`);
+                        if (scriptRetryCount < MAX_SCRIPT_RETRIES) {
+                            await new Promise(r => setTimeout(r, 1000)); // 1초 대기 후 재시도
+                        }
                     }
-                ],
-                max_completion_tokens: 4000
-            });
+                } catch (gptError) {
+                    apiKeyPool.markAvailable(apiKey);
+                    scriptRetryCount++;
+                    console.error(`[Batch] [${index + 1}] 스크립트 생성 에러 - 재시도 ${scriptRetryCount}/${MAX_SCRIPT_RETRIES}:`, gptError.message);
+                    if (scriptRetryCount < MAX_SCRIPT_RETRIES) {
+                        await new Promise(r => setTimeout(r, 1000)); // 1초 대기 후 재시도
+                    }
+                }
+            }
 
-            apiKeyPool.markAvailable(apiKey);
-
-            const generatedScript = gptResponse.choices[0]?.message?.content || '';
-            console.log(`[Batch] [${index + 1}] 스크립트 생성 완료`);
+            // 모든 재시도 실패 시 에러 반환
+            if (!generatedScript || generatedScript.trim().length <= 50) {
+                return { url: trimmedUrl, status: 'failed', error: '스크립트 생성 실패 (GPT 응답 없음)' };
+            }
 
             // 4. Google Drive 업로드 (가능한 경우)
             let videoUrlToSave = extractResult.video_url;
