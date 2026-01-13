@@ -1223,11 +1223,65 @@ ${transcribeResult.text}`
             const generatedScript = gptResponse.choices[0]?.message?.content || '';
             console.log(`[Batch] [${index + 1}] 스크립트 생성 완료`);
 
-            // 4. 노션 저장
+            // 4. Google Drive 업로드 (가능한 경우)
+            let videoUrlToSave = extractResult.video_url;
+            if (googleDriveService.isAuthenticated()) {
+                try {
+                    console.log(`[Batch] [${index + 1}] Google Drive 업로드 시작...`);
+                    const tempDir = path.join(__dirname, 'temp');
+                    if (!fs.existsSync(tempDir)) {
+                        fs.mkdirSync(tempDir, { recursive: true });
+                    }
+                    const videoFileName = `batch_${Date.now()}_${index}.mp4`;
+                    const videoPath = path.join(tempDir, videoFileName);
+
+                    // 비디오 다운로드
+                    const response = await axios({
+                        method: 'GET',
+                        url: extractResult.video_url,
+                        responseType: 'stream',
+                        timeout: 120000,
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                            'Referer': extractResult.platform === 'instagram' ? 'https://www.instagram.com/' :
+                                       extractResult.platform === 'facebook' ? 'https://www.facebook.com/' : ''
+                        }
+                    });
+
+                    const writer = fs.createWriteStream(videoPath);
+                    response.data.pipe(writer);
+                    await new Promise((resolve, reject) => {
+                        writer.on('finish', resolve);
+                        writer.on('error', reject);
+                    });
+
+                    // Google Drive 업로드
+                    const uploadResult = await googleDriveService.uploadVideo(
+                        videoPath,
+                        extractResult.title || `영상_${index + 1}`,
+                        instructor.name
+                    );
+
+                    if (uploadResult && uploadResult.directUrl) {
+                        videoUrlToSave = uploadResult.directUrl;
+                        console.log(`[Batch] [${index + 1}] Google Drive 업로드 완료`);
+                    }
+
+                    // 임시 파일 삭제
+                    if (fs.existsSync(videoPath)) {
+                        fs.unlinkSync(videoPath);
+                    }
+                } catch (driveError) {
+                    console.error(`[Batch] [${index + 1}] Google Drive 업로드 실패:`, driveError.message);
+                    // 실패해도 원본 URL로 계속 진행
+                }
+            }
+
+            // 5. 노션 저장
             const notionResult = await notionService.saveToNotion({
                 databaseId,
-                videoUrl: extractResult.video_url,
-                videoTitle: extractResult.title || `영상 ${index + 1}`,
+                videoUrl: videoUrlToSave,
+                videoTitle: `[${instructor.name}] ${extractResult.title || `영상 ${index + 1}`}`,
                 platform: extractResult.platform,
                 transcript: transcribeResult.text,
                 correctedText: generatedScript,
