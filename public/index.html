@@ -2095,8 +2095,15 @@
         }
 
         // 병렬 모드 강사 선택 드롭다운 업데이트
-        function updateBatchInstructorSelect() {
+        async function updateBatchInstructorSelect() {
             const select = document.getElementById('batchInstructorSelect');
+
+            // 강사 목록이 비어있으면 먼저 로드
+            if (instructorsList.length === 0) {
+                select.innerHTML = '<option value="">강사 목록 로딩 중...</option>';
+                await loadInstructors();
+            }
+
             select.innerHTML = '<option value="">강사를 선택하세요...</option>';
             instructorsList.forEach(inst => {
                 select.innerHTML += `<option value="${inst.id}" style="color: #333; background: #fff;">${inst.name}</option>`;
