@@ -169,11 +169,32 @@ class FacebookDownloader {
     }
 
     extractTitle(html) {
-        // white-space: pre-wrap 스타일의 div에서 텍스트 추출
-        const adTextMatch = html.match(/style=["'][^"']*white-space[^"']*pre-wrap[^"']*["'][^>]*>([^<]+)/);
+        let advertiser = '';
+        let adText = '';
+
+        // 1. 광고주 이름 추출 (facebook.com 링크 안의 텍스트)
+        const advertiserMatch = html.match(/href="https:\/\/www\.facebook\.com\/\d+\/"[^>]*><span[^>]*>([^<]+)<\/span>/);
+        if (advertiserMatch) {
+            advertiser = advertiserMatch[1].trim();
+        }
+
+        // 2. 광고 본문 첫 줄 추출 (white-space: pre-wrap)
+        const adTextMatch = html.match(/style=["']white-space:\s*pre-wrap[^"']*["'][^>]*><span>([^<]+)/);
         if (adTextMatch) {
-            const text = adTextMatch[1].trim();
-            return text.substring(0, 50) || 'Facebook Ad Video';
+            // 첫 줄만 추출 (줄바꿈 전까지)
+            const firstLine = adTextMatch[1].split(/\n|<br>/)[0].trim();
+            // 이모지 제거하고 텍스트만
+            adText = firstLine.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+            adText = adText.substring(0, 40);
+        }
+
+        // 제목 조합
+        if (advertiser && adText) {
+            return `[${advertiser}] ${adText}`;
+        } else if (advertiser) {
+            return `[${advertiser}] Facebook Ad`;
+        } else if (adText) {
+            return adText;
         }
 
         return 'Facebook Ad Video';
