@@ -27,7 +27,7 @@ class TranscribeService {
     }
 
     async transcribe(videoUrl, language = '', prompt = '', options = {}) {
-        const { uploadToGoogleDrive = false, videoTitle = 'video', googleDriveService = null } = options;
+        const { uploadToGoogleDrive = false, videoTitle = 'video', googleDriveService = null, instructorName = null } = options;
 
         // UUID로 파일명 생성 (동시 요청 충돌 방지)
         const fileId = uuidv4();
@@ -60,9 +60,12 @@ class TranscribeService {
             if (uploadToGoogleDrive && googleDriveService && fs.existsSync(videoPath)) {
                 try {
                     console.log('[Transcribe] Google Drive 업로드 중...');
+                    if (instructorName) {
+                        console.log('[Transcribe] 강사 폴더:', instructorName);
+                    }
                     const timestamp = new Date().toISOString().slice(0, 10);
                     const fileName = `${videoTitle}_${timestamp}.mp4`;
-                    const uploadResult = await googleDriveService.uploadVideo(videoPath, fileName);
+                    const uploadResult = await googleDriveService.uploadVideo(videoPath, fileName, instructorName);
                     googleDriveUrl = uploadResult.directUrl;
                     console.log('[Transcribe] Google Drive 업로드 완료:', googleDriveUrl);
                 } catch (uploadError) {

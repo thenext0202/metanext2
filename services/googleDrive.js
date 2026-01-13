@@ -96,8 +96,8 @@ class GoogleDriveService {
         return !!(credentials && credentials.access_token);
     }
 
-    // 동영상 업로드
-    async uploadVideo(filePath, fileName) {
+    // 동영상 업로드 (강사별 폴더 지원)
+    async uploadVideo(filePath, fileName, instructorName = null) {
         if (!this.isAuthenticated()) {
             throw new Error('Google Drive 인증이 필요합니다.');
         }
@@ -106,8 +106,15 @@ class GoogleDriveService {
 
         console.log('[GoogleDrive] 업로드 시작:', fileName);
 
-        // 폴더 ID 가져오기 (MetaGrabber 폴더)
-        let folderId = await this.getOrCreateFolder(drive, 'MetaGrabber');
+        // MetaGrabber 폴더 가져오기/생성
+        let rootFolderId = await this.getOrCreateFolder(drive, 'MetaGrabber');
+
+        // 강사 이름이 있으면 하위 폴더 생성
+        let folderId = rootFolderId;
+        if (instructorName) {
+            folderId = await this.getOrCreateFolder(drive, instructorName, rootFolderId);
+            console.log('[GoogleDrive] 강사 폴더:', instructorName);
+        }
 
         const fileMetadata = {
             name: fileName,
@@ -152,12 +159,17 @@ class GoogleDriveService {
         }
     }
 
-    // MetaGrabber 폴더 생성 또는 가져오기
-    async getOrCreateFolder(drive, folderName) {
+    // 폴더 생성 또는 가져오기 (부모 폴더 지원)
+    async getOrCreateFolder(drive, folderName, parentFolderId = null) {
         try {
-            // 기존 폴더 검색
+            // 기존 폴더 검색 (부모 폴더 조건 포함)
+            let query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+            if (parentFolderId) {
+                query += ` and '${parentFolderId}' in parents`;
+            }
+
             const response = await drive.files.list({
-                q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                q: query,
                 fields: 'files(id, name)'
             });
 
@@ -170,6 +182,11 @@ class GoogleDriveService {
                 name: folderName,
                 mimeType: 'application/vnd.google-apps.folder'
             };
+
+            // 부모 폴더가 있으면 추가
+            if (parentFolderId) {
+                folderMetadata.parents = [parentFolderId];
+            }
 
             const folder = await drive.files.create({
                 requestBody: folderMetadata,

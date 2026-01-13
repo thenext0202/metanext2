@@ -334,7 +334,7 @@ initAPIKeyPool();
 
 // 음성 전사 API
 app.post('/api/transcribe', async (req, res) => {
-    const { videoUrl, language = 'ko', prompt = '', uploadToGoogleDrive = false, videoTitle = 'video' } = req.body;
+    const { videoUrl, language = 'ko', prompt = '', uploadToGoogleDrive = false, videoTitle = 'video', instructorName = null } = req.body;
 
     if (!videoUrl) {
         return res.status(400).json({ error: '비디오 URL이 필요합니다' });
@@ -350,6 +350,9 @@ app.post('/api/transcribe', async (req, res) => {
         console.log('[Server] 전사 시작:', videoUrl.substring(0, 50) + '...');
         console.log('[Server] API 키 풀 상태:', apiKeyPool.getStatus());
         console.log('[Server] Google Drive 업로드:', uploadToGoogleDrive);
+        if (instructorName) {
+            console.log('[Server] 강사 폴더:', instructorName);
+        }
         if (prompt) {
             console.log('[Server] Prompt 힌트:', prompt.substring(0, 100));
         }
@@ -358,7 +361,8 @@ app.post('/api/transcribe', async (req, res) => {
         const result = await transcribeService.transcribe(videoUrl, language, prompt, {
             uploadToGoogleDrive,
             videoTitle,
-            googleDriveService: uploadToGoogleDrive ? googleDriveService : null
+            googleDriveService: uploadToGoogleDrive ? googleDriveService : null,
+            instructorName
         });
 
         return res.json(result);

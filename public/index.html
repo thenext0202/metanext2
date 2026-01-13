@@ -2188,6 +2188,11 @@
                 // Google Drive 업로드 옵션
                 const uploadToGoogleDrive = document.getElementById('uploadToGoogleDrive')?.checked || false;
 
+                // 선택된 강사 이름 가져오기 (Google Drive 폴더 생성용)
+                const instructorId = document.getElementById('instructorSelect')?.value;
+                const instructor = instructorsList.find(i => i.id === instructorId);
+                const instructorName = instructor ? instructor.name : null;
+
                 const response = await fetch('/api/transcribe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2196,7 +2201,8 @@
                         language: selectedLang,  // 빈 문자열이면 자동 감지
                         prompt: prompt,
                         uploadToGoogleDrive: uploadToGoogleDrive,
-                        videoTitle: currentVideoData.title || 'video'
+                        videoTitle: currentVideoData.title || 'video',
+                        instructorName: instructorName
                     })
                 });
 
