@@ -5,6 +5,7 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
+const pLimit = require('p-limit');
 
 const FacebookDownloader = require('./downloaders/facebook');
 const InstagramDownloader = require('./downloaders/instagram');
@@ -1090,6 +1091,196 @@ app.post('/api/notion/save', async (req, res) => {
 
         return res.status(500).json({ error: errorMsg });
     }
+});
+
+// ===== 병렬 처리 (Batch Process) API =====
+app.post('/api/batch-process', async (req, res) => {
+    const { urls, instructorId } = req.body;
+
+    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+        return res.status(400).json({ error: 'URL 목록이 필요합니다' });
+    }
+
+    if (!instructorId) {
+        return res.status(400).json({ error: '강사를 선택해주세요' });
+    }
+
+    // 강사 정보 미리 가져오기
+    const instructors = await supabase.getInstructors();
+    const instructor = instructors.find(i => i.id === instructorId);
+    if (!instructor) {
+        return res.status(400).json({ error: '선택한 강사를 찾을 수 없습니다' });
+    }
+
+    // 지침 미리 가져오기
+    const prompt = await supabase.getPrompt();
+    if (!prompt) {
+        return res.status(400).json({ error: '지침이 설정되지 않았습니다' });
+    }
+
+    // Notion DB URL 가져오기
+    const notionDbUrl = await supabase.getNotionUrl();
+    if (!notionDbUrl) {
+        return res.status(400).json({ error: 'Notion 데이터베이스 URL이 설정되지 않았습니다' });
+    }
+
+    // DB URL에서 ID 추출
+    const notionDbIdMatch = notionDbUrl.match(/([a-f0-9]{32})|([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+    const databaseId = notionDbIdMatch ? notionDbIdMatch[0].replace(/-/g, '') : null;
+    if (!databaseId) {
+        return res.status(400).json({ error: 'Notion 데이터베이스 ID를 추출할 수 없습니다' });
+    }
+
+    console.log(`[Batch] 병렬 처리 시작: ${urls.length}개 URL, 강사: ${instructor.name}`);
+
+    const limit = pLimit(5); // 동시 5개 처리
+
+    // 단일 URL 처리 함수
+    const processUrl = async (url, index) => {
+        const trimmedUrl = url.trim();
+        if (!trimmedUrl) {
+            return { url, status: 'skipped', error: '빈 URL' };
+        }
+
+        console.log(`[Batch] [${index + 1}/${urls.length}] 처리 시작: ${trimmedUrl}`);
+
+        try {
+            // 1. 비디오 추출
+            let extractResult = null;
+            if (FacebookDownloader.isValidUrl(trimmedUrl)) {
+                extractResult = await facebookDownloader.extractVideoUrl(trimmedUrl);
+            } else if (InstagramDownloader.isValidUrl(trimmedUrl)) {
+                extractResult = await instagramDownloader.extractVideoUrl(trimmedUrl);
+            } else if (YouTubeDownloader.isValidUrl(trimmedUrl)) {
+                extractResult = await youtubeDownloader.extractVideoUrl(trimmedUrl);
+            } else if (GoogleAdsDownloader.isValidUrl(trimmedUrl)) {
+                const googleResult = await googleAdsDownloader.extractVideoUrl(trimmedUrl);
+                if (googleResult && googleResult.isYouTube) {
+                    extractResult = await youtubeDownloader.extractVideoUrl(googleResult.video_url);
+                    if (extractResult) extractResult.platform = 'googleads';
+                } else {
+                    extractResult = googleResult;
+                }
+            } else {
+                return { url: trimmedUrl, status: 'failed', error: '지원하지 않는 URL' };
+            }
+
+            if (!extractResult || !extractResult.video_url) {
+                return { url: trimmedUrl, status: 'failed', error: '비디오 추출 실패' };
+            }
+
+            console.log(`[Batch] [${index + 1}] 추출 완료: ${extractResult.platform}`);
+
+            // 2. 음성 전사
+            const transcribeResult = await TranscribeService.transcribe(extractResult.video_url, 'ko');
+            if (!transcribeResult || !transcribeResult.text) {
+                return { url: trimmedUrl, status: 'failed', error: '음성 전사 실패' };
+            }
+
+            console.log(`[Batch] [${index + 1}] 전사 완료: ${transcribeResult.text.length}자`);
+
+            // 3. 스크립트 생성
+            const apiKey = apiKeyPool.getAvailableKey();
+            if (!apiKey) {
+                return { url: trimmedUrl, status: 'failed', error: '사용 가능한 API 키 없음' };
+            }
+
+            apiKeyPool.markInUse(apiKey);
+
+            const OpenAI = require('openai');
+            const openai = new OpenAI({ apiKey });
+
+            const systemPrompt = `${prompt}
+
+## 강사 정보
+- 이름: ${instructor.name}
+- 정보: ${instructor.info}`;
+
+            const gptResponse = await openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    {
+                        role: 'user',
+                        content: `다음은 음성 인식으로 생성된 스크립트입니다.
+
+아래 작업을 수행하고 **최종 결과물만** 출력해주세요:
+- 오타, 맞춤법, 띄어쓰기 수정
+- 말더듬이나 반복 표현 정리
+- 불필요한 추임새 제거 (음..., 어... 등)
+- 위 강사 정보에 맞게 스타일 변환
+
+중요: 교정본, 변환본 등 중간 과정 없이 최종 스크립트만 출력하세요.
+
+원본 스크립트:
+${transcribeResult.text}`
+                    }
+                ],
+                max_completion_tokens: 4000
+            });
+
+            apiKeyPool.markAvailable(apiKey);
+
+            const generatedScript = gptResponse.choices[0]?.message?.content || '';
+            console.log(`[Batch] [${index + 1}] 스크립트 생성 완료`);
+
+            // 4. 노션 저장
+            const notionResult = await notionService.saveToNotion({
+                databaseId,
+                videoUrl: extractResult.video_url,
+                videoTitle: extractResult.title || `영상 ${index + 1}`,
+                platform: extractResult.platform,
+                transcript: transcribeResult.text,
+                correctedText: generatedScript,
+                summary: null,
+                translatedText: null,
+                instructorName: instructor.name
+            });
+
+            console.log(`[Batch] [${index + 1}] 노션 저장 완료: ${notionResult.url}`);
+
+            return {
+                url: trimmedUrl,
+                status: 'success',
+                title: extractResult.title,
+                platform: extractResult.platform,
+                notionUrl: notionResult.url
+            };
+
+        } catch (error) {
+            console.error(`[Batch] [${index + 1}] 에러:`, error.message);
+            return { url: trimmedUrl, status: 'failed', error: error.message };
+        }
+    };
+
+    // 모든 URL 병렬 처리
+    const results = await Promise.allSettled(
+        urls.map((url, index) => limit(() => processUrl(url, index)))
+    );
+
+    // 결과 정리
+    const processedResults = results.map((result, index) => {
+        if (result.status === 'fulfilled') {
+            return result.value;
+        } else {
+            return { url: urls[index], status: 'failed', error: result.reason?.message || '알 수 없는 오류' };
+        }
+    });
+
+    const summary = {
+        total: urls.length,
+        success: processedResults.filter(r => r.status === 'success').length,
+        failed: processedResults.filter(r => r.status === 'failed').length,
+        skipped: processedResults.filter(r => r.status === 'skipped').length
+    };
+
+    console.log(`[Batch] 병렬 처리 완료: 성공 ${summary.success}, 실패 ${summary.failed}, 건너뜀 ${summary.skipped}`);
+
+    return res.json({
+        success: true,
+        results: processedResults,
+        summary
+    });
 });
 
 // 서버 시작

@@ -1262,6 +1262,306 @@
                 height: 40px;
             }
         }
+
+        /* ===== 모드 탭 스타일 ===== */
+        .mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 6px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .mode-tab {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .mode-tab:hover {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .mode-tab.active {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.4);
+        }
+
+        .mode-tab svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .mode-section {
+            display: none;
+        }
+
+        .mode-section.active {
+            display: block;
+        }
+
+        /* 병렬 모드 스타일 */
+        .batch-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+        }
+
+        .batch-header {
+            margin-bottom: 20px;
+        }
+
+        .batch-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .batch-header p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+        }
+
+        .batch-instructor-select {
+            margin-bottom: 16px;
+        }
+
+        .batch-instructor-select label {
+            display: block;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+
+        .batch-urls-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 16px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            background: rgba(0, 0, 0, 0.4);
+            color: #fff;
+            outline: none;
+            resize: vertical;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .batch-urls-input:focus {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .batch-urls-input::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        .batch-start-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .batch-start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.4);
+        }
+
+        .batch-start-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .batch-start-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* 병렬 처리 결과 */
+        .batch-results {
+            margin-top: 24px;
+            display: none;
+        }
+
+        .batch-results.active {
+            display: block;
+        }
+
+        .batch-progress {
+            margin-bottom: 20px;
+        }
+
+        .batch-progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .batch-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .batch-progress-text {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+        }
+
+        .batch-summary {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .batch-summary-item {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .batch-summary-item .count {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .batch-summary-item .label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+
+        .batch-summary-item.success .count { color: #10b981; }
+        .batch-summary-item.failed .count { color: #ef4444; }
+        .batch-summary-item.pending .count { color: #f59e0b; }
+
+        .batch-items {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .batch-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .batch-item-status {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .batch-item-status.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .batch-item-status.processing {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1;
+        }
+
+        .batch-item-status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .batch-item-status.failed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .batch-item-status svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .batch-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .batch-item-url {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.9);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .batch-item-detail {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+
+        .batch-item-link {
+            color: #8b5cf6;
+            text-decoration: none;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .batch-item-link:hover {
+            text-decoration: underline;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .batch-item-status.processing svg {
+            animation: spin 1s linear infinite;
+        }
     </style>
 </head>
 <body>
@@ -1458,19 +1758,33 @@
             </div>
         </div>
 
-        <section class="input-section">
-            <div class="input-group">
-                <input type="text" id="urlInput" placeholder="영상 URL을 붙여넣으세요">
-                <button class="btn-primary" id="extractBtn" onclick="extractVideo()">추출하기</button>
-            </div>
-            <div class="error-message" id="errorMsg"></div>
-            <div class="success-message" id="successMsg"></div>
-        </section>
-
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>비디오 정보를 추출하는 중... (최대 30초 소요)</p>
+        <!-- 모드 선택 탭 -->
+        <div class="mode-tabs">
+            <button class="mode-tab active" onclick="switchMode('single')" data-mode="single">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                단일 모드
+            </button>
+            <button class="mode-tab" onclick="switchMode('batch')" data-mode="batch">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
+                병렬 모드
+            </button>
         </div>
+
+        <!-- 단일 모드 섹션 -->
+        <div class="mode-section active" id="singleModeSection">
+            <section class="input-section">
+                <div class="input-group">
+                    <input type="text" id="urlInput" placeholder="영상 URL을 붙여넣으세요">
+                    <button class="btn-primary" id="extractBtn" onclick="extractVideo()">추출하기</button>
+                </div>
+                <div class="error-message" id="errorMsg"></div>
+                <div class="success-message" id="successMsg"></div>
+            </section>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>비디오 정보를 추출하는 중... (최대 30초 소요)</p>
+            </div>
 
         <section class="result-section" id="resultSection">
             <!-- 탭 네비게이션 -->
@@ -1645,6 +1959,67 @@
                 </div>
             </div>
         </section>
+        </div><!-- 단일 모드 섹션 끝 -->
+
+        <!-- 병렬 모드 섹션 -->
+        <div class="mode-section" id="batchModeSection">
+            <div class="batch-section">
+                <div class="batch-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h3>병렬 처리 모드</h3>
+                        <p>여러 URL을 한 번에 처리하여 스크립트 생성 및 노션 저장까지 자동으로 완료합니다.</p>
+                    </div>
+                    <button class="action-btn" onclick="showScriptSettings()" style="flex-shrink: 0;">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                        설정
+                    </button>
+                </div>
+
+                <div class="batch-instructor-select">
+                    <label for="batchInstructorSelect">강사 선택</label>
+                    <select id="batchInstructorSelect" class="control-select" style="width: 100%;">
+                        <option value="">강사를 선택하세요...</option>
+                    </select>
+                </div>
+
+                <textarea
+                    id="batchUrlsInput"
+                    class="batch-urls-input"
+                    placeholder="URL을 한 줄에 하나씩 입력하세요&#10;&#10;예시:&#10;https://www.facebook.com/ads/library/?id=123456789&#10;https://www.instagram.com/reel/ABC123&#10;https://www.youtube.com/watch?v=xyz"
+                ></textarea>
+
+                <button class="batch-start-btn" id="batchStartBtn" onclick="startBatchProcess()">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    일괄 처리 시작
+                </button>
+
+                <div class="batch-results" id="batchResults">
+                    <div class="batch-progress">
+                        <div class="batch-progress-bar">
+                            <div class="batch-progress-fill" id="batchProgressFill"></div>
+                        </div>
+                        <div class="batch-progress-text" id="batchProgressText">0 / 0 처리 중...</div>
+                    </div>
+
+                    <div class="batch-summary" id="batchSummary" style="display: none;">
+                        <div class="batch-summary-item success">
+                            <div class="count" id="batchSuccessCount">0</div>
+                            <div class="label">성공</div>
+                        </div>
+                        <div class="batch-summary-item failed">
+                            <div class="count" id="batchFailedCount">0</div>
+                            <div class="label">실패</div>
+                        </div>
+                        <div class="batch-summary-item pending">
+                            <div class="count" id="batchPendingCount">0</div>
+                            <div class="label">대기</div>
+                        </div>
+                    </div>
+
+                    <div class="batch-items" id="batchItems"></div>
+                </div>
+            </div>
+        </div><!-- 병렬 모드 섹션 끝 -->
 
         <!-- 스크립트 설정 모달 -->
         <div class="modal" id="scriptSettingsModal" style="display: none;">
@@ -1696,6 +2071,190 @@
         let currentCorrectedText = '';
         let currentSummary = '';
         let currentTranslatedText = '';
+
+        // ===== 모드 전환 함수 =====
+        function switchMode(mode) {
+            // 탭 버튼 업데이트
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.mode-tab[data-mode="${mode}"]`).classList.add('active');
+
+            // 섹션 업데이트
+            document.querySelectorAll('.mode-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            if (mode === 'single') {
+                document.getElementById('singleModeSection').classList.add('active');
+            } else if (mode === 'batch') {
+                document.getElementById('batchModeSection').classList.add('active');
+                // 병렬 모드 강사 목록 업데이트
+                updateBatchInstructorSelect();
+            }
+        }
+
+        // 병렬 모드 강사 선택 드롭다운 업데이트
+        function updateBatchInstructorSelect() {
+            const select = document.getElementById('batchInstructorSelect');
+            select.innerHTML = '<option value="">강사를 선택하세요...</option>';
+            instructorsList.forEach(inst => {
+                select.innerHTML += `<option value="${inst.id}" style="color: #333; background: #fff;">${inst.name}</option>`;
+            });
+        }
+
+        // ===== 병렬 처리 함수 =====
+        let batchProcessing = false;
+
+        async function startBatchProcess() {
+            if (batchProcessing) return;
+
+            const instructorId = document.getElementById('batchInstructorSelect').value;
+            const urlsText = document.getElementById('batchUrlsInput').value.trim();
+
+            if (!instructorId) {
+                alert('강사를 선택해주세요.');
+                return;
+            }
+
+            if (!urlsText) {
+                alert('처리할 URL을 입력해주세요.');
+                return;
+            }
+
+            // URL 목록 파싱 (빈 줄 제거)
+            const urls = urlsText.split('\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0);
+
+            if (urls.length === 0) {
+                alert('유효한 URL이 없습니다.');
+                return;
+            }
+
+            batchProcessing = true;
+            const startBtn = document.getElementById('batchStartBtn');
+            startBtn.disabled = true;
+            startBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s linear infinite;">
+                    <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z"/>
+                </svg>
+                처리 중...
+            `;
+
+            // 결과 영역 표시
+            const resultsDiv = document.getElementById('batchResults');
+            resultsDiv.classList.add('active');
+
+            // 초기 아이템 렌더링
+            renderBatchItems(urls.map(url => ({ url, status: 'pending' })));
+
+            // 진행 상황 초기화
+            updateBatchProgress(0, urls.length);
+            document.getElementById('batchSummary').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/batch-process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls, instructorId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 결과 렌더링
+                    renderBatchItems(data.results);
+                    updateBatchProgress(urls.length, urls.length);
+
+                    // 요약 표시
+                    document.getElementById('batchSummary').style.display = 'flex';
+                    document.getElementById('batchSuccessCount').textContent = data.summary.success;
+                    document.getElementById('batchFailedCount').textContent = data.summary.failed;
+                    document.getElementById('batchPendingCount').textContent = data.summary.skipped;
+
+                    document.getElementById('batchProgressText').textContent =
+                        `완료! 성공: ${data.summary.success}, 실패: ${data.summary.failed}`;
+                } else {
+                    alert('처리 중 오류가 발생했습니다: ' + (data.error || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                alert('서버 통신 오류: ' + error.message);
+            } finally {
+                batchProcessing = false;
+                startBtn.disabled = false;
+                startBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    일괄 처리 시작
+                `;
+            }
+        }
+
+        function updateBatchProgress(current, total) {
+            const percent = total > 0 ? (current / total) * 100 : 0;
+            document.getElementById('batchProgressFill').style.width = percent + '%';
+            document.getElementById('batchProgressText').textContent = `${current} / ${total} 처리 중...`;
+        }
+
+        function renderBatchItems(items) {
+            const container = document.getElementById('batchItems');
+            container.innerHTML = '';
+
+            items.forEach((item, index) => {
+                const statusIcon = getBatchStatusIcon(item.status);
+                const statusClass = item.status;
+
+                let detailText = '';
+                if (item.status === 'success') {
+                    detailText = item.platform ? `${item.platform} | ${item.title || ''}` : '';
+                } else if (item.status === 'failed') {
+                    detailText = item.error || '처리 실패';
+                } else if (item.status === 'pending') {
+                    detailText = '대기 중';
+                } else if (item.status === 'skipped') {
+                    detailText = item.error || '건너뜀';
+                }
+
+                const notionLink = item.notionUrl
+                    ? `<a href="${item.notionUrl}" target="_blank" class="batch-item-link">Notion 열기</a>`
+                    : '';
+
+                container.innerHTML += `
+                    <div class="batch-item">
+                        <div class="batch-item-status ${statusClass}">
+                            ${statusIcon}
+                        </div>
+                        <div class="batch-item-info">
+                            <div class="batch-item-url">${truncateUrl(item.url)}</div>
+                            <div class="batch-item-detail">${detailText}</div>
+                        </div>
+                        ${notionLink}
+                    </div>
+                `;
+            });
+        }
+
+        function getBatchStatusIcon(status) {
+            switch (status) {
+                case 'pending':
+                    return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>';
+                case 'processing':
+                    return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z"/></svg>';
+                case 'success':
+                    return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+                case 'failed':
+                case 'skipped':
+                    return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+                default:
+                    return '';
+            }
+        }
+
+        function truncateUrl(url) {
+            if (!url) return '';
+            if (url.length <= 60) return url;
+            return url.substring(0, 30) + '...' + url.substring(url.length - 25);
+        }
 
         // 탭 전환 함수
         function switchResultTab(tabName) {
