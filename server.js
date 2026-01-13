@@ -1134,8 +1134,8 @@ app.post('/api/batch-process', async (req, res) => {
 
     const CONCURRENCY = 5; // 동시 처리 수
 
-    // 단일 URL 처리 함수
-    const processUrl = async (url, index) => {
+    // 1단계: 추출, 전사, 스크립트 생성, Google Drive 업로드 (병렬)
+    const prepareUrl = async (url, index) => {
         const trimmedUrl = url.trim();
         if (!trimmedUrl) {
             return { url, status: 'skipped', error: '빈 URL' };
@@ -1277,27 +1277,15 @@ ${transcribeResult.text}`
                 }
             }
 
-            // 5. 노션 저장
-            const notionResult = await notionService.saveToNotion({
-                databaseId,
-                videoUrl: videoUrlToSave,
-                videoTitle: `[${instructor.name}] ${extractResult.title || `영상 ${index + 1}`}`,
-                platform: extractResult.platform,
-                transcript: transcribeResult.text,
-                correctedText: generatedScript,
-                summary: null,
-                translatedText: null,
-                instructorName: instructor.name
-            });
-
-            console.log(`[Batch] [${index + 1}] 노션 저장 완료: ${notionResult.url}`);
-
+            // 준비 완료 - 노션 저장에 필요한 데이터 반환
             return {
                 url: trimmedUrl,
-                status: 'success',
-                title: extractResult.title,
-                platform: extractResult.platform,
-                notionUrl: notionResult.url
+                status: 'prepared',
+                index,
+                extractResult,
+                transcribeResult,
+                generatedScript,
+                videoUrlToSave
             };
 
         } catch (error) {
@@ -1306,14 +1294,71 @@ ${transcribeResult.text}`
         }
     };
 
-    // 동시 처리 수 제한하여 병렬 처리
-    const results = [];
+    // 1단계: 병렬로 준비 작업 수행
+    const preparedResults = [];
     for (let i = 0; i < urls.length; i += CONCURRENCY) {
         const batch = urls.slice(i, i + CONCURRENCY);
         const batchResults = await Promise.allSettled(
-            batch.map((url, batchIndex) => processUrl(url, i + batchIndex))
+            batch.map((url, batchIndex) => prepareUrl(url, i + batchIndex))
         );
-        results.push(...batchResults);
+        preparedResults.push(...batchResults);
+    }
+
+    // 2단계: 노션 저장 (순차 처리 - 경쟁 조건 방지)
+    console.log(`[Batch] 노션 저장 시작 (순차 처리)...`);
+    const results = [];
+    for (let i = 0; i < preparedResults.length; i++) {
+        const prepared = preparedResults[i];
+
+        if (prepared.status === 'rejected') {
+            results.push({
+                status: 'fulfilled',
+                value: { url: urls[i], status: 'failed', error: prepared.reason?.message || '알 수 없는 오류' }
+            });
+            continue;
+        }
+
+        const data = prepared.value;
+
+        // 이미 실패하거나 건너뛴 경우
+        if (data.status === 'failed' || data.status === 'skipped') {
+            results.push({ status: 'fulfilled', value: data });
+            continue;
+        }
+
+        // 노션 저장
+        try {
+            const notionResult = await notionService.saveToNotion({
+                databaseId,
+                videoUrl: data.videoUrlToSave,
+                videoTitle: `[${instructor.name}] ${data.extractResult.title || `영상 ${data.index + 1}`}`,
+                platform: data.extractResult.platform,
+                transcript: data.transcribeResult.text,
+                correctedText: data.generatedScript,
+                summary: null,
+                translatedText: null,
+                instructorName: instructor.name
+            });
+
+            console.log(`[Batch] [${data.index + 1}] 노션 저장 완료: ${notionResult.url}`);
+
+            results.push({
+                status: 'fulfilled',
+                value: {
+                    url: data.url,
+                    status: 'success',
+                    title: data.extractResult.title,
+                    platform: data.extractResult.platform,
+                    notionUrl: notionResult.url
+                }
+            });
+        } catch (notionError) {
+            console.error(`[Batch] [${data.index + 1}] 노션 저장 에러:`, notionError.message);
+            results.push({
+                status: 'fulfilled',
+                value: { url: data.url, status: 'failed', error: `노션 저장 실패: ${notionError.message}` }
+            });
+        }
     }
 
     // 결과 정리
