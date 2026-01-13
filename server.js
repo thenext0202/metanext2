@@ -1171,7 +1171,7 @@ app.post('/api/batch-process', async (req, res) => {
             console.log(`[Batch] [${index + 1}] 추출 완료: ${extractResult.platform}`);
 
             // 2. 음성 전사
-            const transcribeResult = await TranscribeService.transcribe(extractResult.video_url, 'ko');
+            const transcribeResult = await transcribeService.transcribe(extractResult.video_url, 'ko');
             if (!transcribeResult || !transcribeResult.text) {
                 return { url: trimmedUrl, status: 'failed', error: '음성 전사 실패' };
             }
