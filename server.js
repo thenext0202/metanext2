@@ -5,7 +5,6 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
-const pLimit = require('p-limit');
 
 const FacebookDownloader = require('./downloaders/facebook');
 const InstagramDownloader = require('./downloaders/instagram');
@@ -1133,7 +1132,7 @@ app.post('/api/batch-process', async (req, res) => {
 
     console.log(`[Batch] 병렬 처리 시작: ${urls.length}개 URL, 강사: ${instructor.name}`);
 
-    const limit = pLimit(5); // 동시 5개 처리
+    const CONCURRENCY = 5; // 동시 처리 수
 
     // 단일 URL 처리 함수
     const processUrl = async (url, index) => {
@@ -1253,10 +1252,15 @@ ${transcribeResult.text}`
         }
     };
 
-    // 모든 URL 병렬 처리
-    const results = await Promise.allSettled(
-        urls.map((url, index) => limit(() => processUrl(url, index)))
-    );
+    // 동시 처리 수 제한하여 병렬 처리
+    const results = [];
+    for (let i = 0; i < urls.length; i += CONCURRENCY) {
+        const batch = urls.slice(i, i + CONCURRENCY);
+        const batchResults = await Promise.allSettled(
+            batch.map((url, batchIndex) => processUrl(url, i + batchIndex))
+        );
+        results.push(...batchResults);
+    }
 
     // 결과 정리
     const processedResults = results.map((result, index) => {
