@@ -334,7 +334,7 @@ initAPIKeyPool();
 
 // 음성 전사 API
 app.post('/api/transcribe', async (req, res) => {
-    const { videoUrl, language = 'ko', prompt = '', uploadToGoogleDrive = false, videoTitle = 'video', instructorName = null } = req.body;
+    const { videoUrl, language = 'ko', prompt = '' } = req.body;
 
     if (!videoUrl) {
         return res.status(400).json({ error: '비디오 URL이 필요합니다' });
@@ -349,21 +349,11 @@ app.post('/api/transcribe', async (req, res) => {
     try {
         console.log('[Server] 전사 시작:', videoUrl.substring(0, 50) + '...');
         console.log('[Server] API 키 풀 상태:', apiKeyPool.getStatus());
-        console.log('[Server] Google Drive 업로드:', uploadToGoogleDrive);
-        if (instructorName) {
-            console.log('[Server] 강사 폴더:', instructorName);
-        }
         if (prompt) {
             console.log('[Server] Prompt 힌트:', prompt.substring(0, 100));
         }
 
-        // Google Drive 업로드 옵션과 함께 전사
-        const result = await transcribeService.transcribe(videoUrl, language, prompt, {
-            uploadToGoogleDrive,
-            videoTitle,
-            googleDriveService: uploadToGoogleDrive ? googleDriveService : null,
-            instructorName
-        });
+        const result = await transcribeService.transcribe(videoUrl, language, prompt);
 
         return res.json(result);
     } catch (error) {
@@ -682,6 +672,102 @@ app.post('/api/google/upload', async (req, res) => {
         return res.json({ success: true, ...result });
     } catch (error) {
         console.error('[GoogleDrive] 업로드 에러:', error.message);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// URL에서 동영상 다운로드 후 Google Drive 업로드
+app.post('/api/google/upload-from-url', async (req, res) => {
+    const { videoUrl, videoTitle, instructorName } = req.body;
+
+    if (!videoUrl) {
+        return res.status(400).json({ error: '비디오 URL이 필요합니다.' });
+    }
+
+    if (!googleDriveService.isAuthenticated()) {
+        return res.status(400).json({ error: 'Google Drive 인증이 필요합니다.' });
+    }
+
+    const { v4: uuidv4 } = require('uuid');
+    const tempDir = path.join(__dirname, 'temp');
+    const fileId = uuidv4();
+    const videoPath = path.join(tempDir, `upload_${fileId}.mp4`);
+
+    try {
+        console.log('[GoogleDrive] URL에서 다운로드 시작:', videoUrl.substring(0, 50) + '...');
+
+        // HLS 스트림 여부 확인
+        const isHLS = videoUrl.includes('.m3u8') || videoUrl.includes('manifest');
+
+        if (isHLS) {
+            // HLS 스트림 다운로드 (ffmpeg 사용)
+            const { spawn } = require('child_process');
+            const ffmpegPath = fs.existsSync('/usr/bin/ffmpeg') ? '/usr/bin/ffmpeg' : require('ffmpeg-static');
+
+            await new Promise((resolve, reject) => {
+                const ffmpeg = spawn(ffmpegPath, [
+                    '-i', videoUrl,
+                    '-c', 'copy',
+                    '-bsf:a', 'aac_adtstoasc',
+                    '-y',
+                    videoPath
+                ]);
+
+                ffmpeg.stderr.on('data', (data) => {
+                    // ffmpeg 진행 상황 로그 (선택적)
+                });
+
+                ffmpeg.on('close', (code) => {
+                    if (code === 0) resolve();
+                    else reject(new Error(`ffmpeg 종료 코드: ${code}`));
+                });
+
+                ffmpeg.on('error', reject);
+            });
+        } else {
+            // 일반 URL 다운로드
+            const response = await axios({
+                method: 'GET',
+                url: videoUrl,
+                responseType: 'stream',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                },
+                timeout: 300000 // 5분
+            });
+
+            const writer = fs.createWriteStream(videoPath);
+            response.data.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+            });
+        }
+
+        console.log('[GoogleDrive] 다운로드 완료, 업로드 시작...');
+
+        // Google Drive 업로드
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const fileName = `${videoTitle || 'video'}_${timestamp}.mp4`;
+        const result = await googleDriveService.uploadVideo(videoPath, fileName, instructorName);
+
+        console.log('[GoogleDrive] 업로드 완료:', result.directUrl);
+
+        // 임시 파일 삭제
+        if (fs.existsSync(videoPath)) {
+            fs.unlinkSync(videoPath);
+        }
+
+        return res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('[GoogleDrive] URL 업로드 에러:', error.message);
+
+        // 임시 파일 삭제
+        if (fs.existsSync(videoPath)) {
+            fs.unlinkSync(videoPath);
+        }
+
         return res.status(500).json({ error: error.message });
     }
 });

@@ -26,15 +26,12 @@ class TranscribeService {
         }
     }
 
-    async transcribe(videoUrl, language = '', prompt = '', options = {}) {
-        const { uploadToGoogleDrive = false, videoTitle = 'video', googleDriveService = null, instructorName = null } = options;
-
+    async transcribe(videoUrl, language = '', prompt = '') {
         // UUID로 파일명 생성 (동시 요청 충돌 방지)
         const fileId = uuidv4();
         const videoPath = path.join(this.tempDir, `video_${fileId}.mp4`);
         const audioPath = path.join(this.tempDir, `audio_${fileId}.mp3`);
         const chunkPaths = [];
-        let googleDriveUrl = null;
 
         try {
             // HLS 스트림(m3u8)인 경우 ffmpeg로 직접 처리
@@ -42,11 +39,6 @@ class TranscribeService {
 
             if (isHLS) {
                 console.log('[Transcribe] HLS 스트림 감지 - ffmpeg로 직접 오디오 추출...');
-                // HLS의 경우 Google Drive 업로드를 위해 비디오도 다운로드
-                if (uploadToGoogleDrive && googleDriveService) {
-                    console.log('[Transcribe] HLS 비디오 다운로드 (Google Drive용)...');
-                    await this.downloadHLSVideo(videoUrl, videoPath);
-                }
                 await this.extractAudioFromStream(videoUrl, audioPath);
             } else {
                 console.log('[Transcribe] 비디오 다운로드 중...');
@@ -56,26 +48,8 @@ class TranscribeService {
                 await this.extractAudio(videoPath, audioPath);
             }
 
-            // Google Drive 업로드 (전사와 병렬로 처리하지 않고 먼저 업로드)
-            if (uploadToGoogleDrive && googleDriveService && fs.existsSync(videoPath)) {
-                try {
-                    console.log('[Transcribe] Google Drive 업로드 중...');
-                    if (instructorName) {
-                        console.log('[Transcribe] 강사 폴더:', instructorName);
-                    }
-                    const timestamp = new Date().toISOString().slice(0, 10);
-                    const fileName = `${videoTitle}_${timestamp}.mp4`;
-                    const uploadResult = await googleDriveService.uploadVideo(videoPath, fileName, instructorName);
-                    googleDriveUrl = uploadResult.directUrl;
-                    console.log('[Transcribe] Google Drive 업로드 완료:', googleDriveUrl);
-                } catch (uploadError) {
-                    console.error('[Transcribe] Google Drive 업로드 실패:', uploadError.message);
-                    // 업로드 실패해도 전사는 계속 진행
-                }
-            }
-
-            // 파일 크기 확인 (24MB 제한, 여유 두기)
-            const MAX_SIZE = 24 * 1024 * 1024; // 24MB
+            // 파일 크기 확인 (50MB 제한)
+            const MAX_SIZE = 50 * 1024 * 1024; // 50MB
             const stats = fs.statSync(audioPath);
             console.log(`[Transcribe] 오디오 파일 크기: ${(stats.size / 1024 / 1024).toFixed(2)}MB`);
 
@@ -115,8 +89,7 @@ class TranscribeService {
             return {
                 success: true,
                 text: transcriptionText,
-                language: language,
-                googleDriveUrl: googleDriveUrl
+                language: language
             };
 
         } catch (error) {
