@@ -239,6 +239,12 @@ class TranscribeService {
     }
 
     async downloadFile(url, filePath) {
+        // Facebook/Instagram CDN은 ffmpeg로 직접 다운로드 (403 우회)
+        if (url.includes('fbcdn.net') || url.includes('cdninstagram.com')) {
+            console.log('[Transcribe] Facebook/Instagram CDN - ffmpeg로 다운로드...');
+            return this.downloadWithFFmpeg(url, filePath);
+        }
+
         // 플랫폼별 Referer 헤더 추가 (403 방지)
         const headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -247,12 +253,6 @@ class TranscribeService {
         if (url.includes('googlevideo.com') || url.includes('youtube.com')) {
             headers['Referer'] = 'https://www.youtube.com/';
             headers['Origin'] = 'https://www.youtube.com';
-        } else if (url.includes('fbcdn.net') || url.includes('facebook.com')) {
-            headers['Referer'] = 'https://www.facebook.com/';
-            headers['Origin'] = 'https://www.facebook.com';
-        } else if (url.includes('cdninstagram.com') || url.includes('instagram.com')) {
-            headers['Referer'] = 'https://www.instagram.com/';
-            headers['Origin'] = 'https://www.instagram.com';
         }
 
         const response = await axios({
@@ -277,6 +277,43 @@ class TranscribeService {
                 }
             });
             writer.on('error', reject);
+        });
+    }
+
+    // ffmpeg로 비디오 다운로드 (CDN 제한 우회)
+    async downloadWithFFmpeg(url, filePath) {
+        return new Promise((resolve, reject) => {
+            const ffmpeg = spawn(ffmpegPath, [
+                '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\nReferer: https://www.facebook.com/\r\n',
+                '-i', url,
+                '-c', 'copy',
+                '-y',
+                filePath
+            ]);
+
+            let stderrData = '';
+            ffmpeg.stderr.on('data', (data) => {
+                stderrData += data.toString();
+            });
+
+            ffmpeg.on('close', (code) => {
+                if (code === 0) {
+                    const stats = fs.statSync(filePath);
+                    console.log(`[Transcribe] ffmpeg 다운로드 완료: ${stats.size} bytes`);
+                    if (stats.size < 1000) {
+                        reject(new Error('다운로드된 파일이 너무 작습니다.'));
+                    } else {
+                        resolve();
+                    }
+                } else {
+                    console.error('[Transcribe] ffmpeg 다운로드 실패:', stderrData.slice(-500));
+                    reject(new Error(`ffmpeg 다운로드 실패: exit code ${code}`));
+                }
+            });
+
+            ffmpeg.on('error', (err) => {
+                reject(new Error(`ffmpeg 실행 실패: ${err.message}`));
+            });
         });
     }
 
