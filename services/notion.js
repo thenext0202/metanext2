@@ -281,23 +281,38 @@ class NotionService {
             }
         }));
 
-        // 동영상 블록
-        const videoBlock = videoUrl ? {
-            object: 'block',
-            type: 'video',
-            video: {
-                type: 'external',
-                external: {
+        // 동영상 블록 (Google Drive URL은 embed 블록 사용)
+        let videoBlock;
+        if (!videoUrl) {
+            videoBlock = {
+                object: 'block',
+                type: 'paragraph',
+                paragraph: {
+                    rich_text: [{ type: 'text', text: { content: '(동영상 URL 없음)' } }]
+                }
+            };
+        } else if (videoUrl.includes('drive.google.com')) {
+            // Google Drive URL은 embed 블록으로 (video 블록은 직접 재생 URL 필요)
+            videoBlock = {
+                object: 'block',
+                type: 'embed',
+                embed: {
                     url: videoUrl
                 }
-            }
-        } : {
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-                rich_text: [{ type: 'text', text: { content: '(동영상 URL 없음)' } }]
-            }
-        };
+            };
+        } else {
+            // 일반 URL은 video 블록
+            videoBlock = {
+                object: 'block',
+                type: 'video',
+                video: {
+                    type: 'external',
+                    external: {
+                        url: videoUrl
+                    }
+                }
+            };
+        }
 
         // column 내용물 반환 (비디오 + 텍스트들)
         return [videoBlock, ...textBlocks];
