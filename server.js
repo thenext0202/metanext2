@@ -1412,6 +1412,13 @@ ${transcribeResult.text}`
 
     console.log(`[Batch] 병렬 처리 완료: 성공 ${summary.success}, 실패 ${summary.failed}, 건너뜀 ${summary.skipped}`);
 
+    // 디버깅: 각 결과의 원본 텍스트 앞 50자 출력
+    processedResults.forEach((r, i) => {
+        if (r.originalTranscript) {
+            console.log(`[Batch] 결과[${i}] 원본 텍스트 앞 50자: ${r.originalTranscript.substring(0, 50)}...`);
+        }
+    });
+
     return res.json({
         success: true,
         results: processedResults,

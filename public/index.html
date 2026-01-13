@@ -2308,6 +2308,10 @@
 
         // 배치 결과 원본 텍스트 모달 표시
         function showBatchTranscriptModal(index) {
+            console.log('[Debug] showBatchTranscriptModal index:', index);
+            console.log('[Debug] batchResultsData:', batchResultsData);
+            console.log('[Debug] batchResultsData[index]:', batchResultsData[index]);
+
             const item = batchResultsData[index];
             if (!item) return;
 
