@@ -51,14 +51,18 @@ class NotionService {
             console.log('[Notion] 검색 결과 개수:', response.results?.length || 0);
 
             if (response.results && response.results.length > 0) {
-                // 해당 데이터베이스의 페이지만 필터링
+                // 해당 데이터베이스의 페이지만 필터링 (archived 제외)
                 const dbPages = response.results.filter(page => {
+                    // archived된 페이지는 제외
+                    if (page.archived || page.in_trash) {
+                        return false;
+                    }
                     const parentDbId = page.parent?.database_id?.replace(/-/g, '');
                     const targetDbId = databaseId.replace(/-/g, '');
                     return parentDbId === targetDbId;
                 });
 
-                console.log('[Notion] DB 페이지 개수:', dbPages.length);
+                console.log('[Notion] DB 페이지 개수 (archived 제외):', dbPages.length);
 
                 // "XXX 강사 보드" 형태의 페이지 찾기
                 for (const page of dbPages) {
@@ -71,7 +75,7 @@ class NotionService {
                         }
                     }
 
-                    console.log('[Notion] 페이지 제목:', pageTitle);
+                    console.log('[Notion] 페이지 제목:', pageTitle, '(archived:', page.archived, ')');
 
                     // 강사 이름이 포함되고 "강사 보드"가 포함된 페이지 찾기
                     if (pageTitle.includes(instructorName) && pageTitle.includes('강사 보드')) {

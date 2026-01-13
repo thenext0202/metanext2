@@ -1562,6 +1562,40 @@
         .batch-item-status.processing svg {
             animation: spin 1s linear infinite;
         }
+
+        .batch-retry-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .batch-retry-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px -4px rgba(245, 158, 11, 0.4);
+        }
+
+        .batch-retry-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .batch-retry-btn svg {
+            width: 18px;
+            height: 18px;
+        }
     </style>
 </head>
 <body>
@@ -2016,6 +2050,11 @@
                         </div>
                     </div>
 
+                    <button class="batch-retry-btn" id="batchRetryBtn" onclick="retryFailedItems()" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                        실패 항목 재시도
+                    </button>
+
                     <div class="batch-items" id="batchItems"></div>
                 </div>
             </div>
@@ -2112,6 +2151,8 @@
 
         // ===== 병렬 처리 함수 =====
         let batchProcessing = false;
+        let lastBatchResults = []; // 마지막 결과 저장 (재시도용)
+        let lastInstructorId = null; // 마지막 강사 ID 저장
 
         async function startBatchProcess() {
             if (batchProcessing) return;
@@ -2170,6 +2211,10 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    // 결과 저장 (재시도용)
+                    lastBatchResults = data.results;
+                    lastInstructorId = instructorId;
+
                     // 결과 렌더링
                     renderBatchItems(data.results);
                     updateBatchProgress(urls.length, urls.length);
@@ -2182,6 +2227,14 @@
 
                     document.getElementById('batchProgressText').textContent =
                         `완료! 성공: ${data.summary.success}, 실패: ${data.summary.failed}`;
+
+                    // 실패 항목이 있으면 재시도 버튼 표시
+                    const retryBtn = document.getElementById('batchRetryBtn');
+                    if (data.summary.failed > 0) {
+                        retryBtn.style.display = 'flex';
+                    } else {
+                        retryBtn.style.display = 'none';
+                    }
                 } else {
                     alert('처리 중 오류가 발생했습니다: ' + (data.error || '알 수 없는 오류'));
                 }
@@ -2261,6 +2314,116 @@
             if (!url) return '';
             if (url.length <= 60) return url;
             return url.substring(0, 30) + '...' + url.substring(url.length - 25);
+        }
+
+        // 실패 항목 재시도
+        async function retryFailedItems() {
+            if (batchProcessing) return;
+
+            // 실패한 URL만 추출
+            const failedUrls = lastBatchResults
+                .filter(r => r.status === 'failed')
+                .map(r => r.url);
+
+            if (failedUrls.length === 0) {
+                alert('재시도할 항목이 없습니다.');
+                return;
+            }
+
+            if (!lastInstructorId) {
+                alert('강사 정보가 없습니다. 다시 시작해주세요.');
+                return;
+            }
+
+            batchProcessing = true;
+            const retryBtn = document.getElementById('batchRetryBtn');
+            const startBtn = document.getElementById('batchStartBtn');
+            retryBtn.disabled = true;
+            startBtn.disabled = true;
+            retryBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s linear infinite;">
+                    <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z"/>
+                </svg>
+                재시도 중...
+            `;
+
+            // 기존 성공 항목 유지, 실패 항목만 pending으로 변경
+            const updatedResults = lastBatchResults.map(r => {
+                if (r.status === 'failed') {
+                    return { ...r, status: 'pending', error: null };
+                }
+                return r;
+            });
+            renderBatchItems(updatedResults);
+
+            // 진행 상황 초기화
+            updateBatchProgress(0, failedUrls.length);
+
+            try {
+                const response = await fetch('/api/batch-process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls: failedUrls, instructorId: lastInstructorId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 새 결과와 기존 성공 결과 병합
+                    const newResultsMap = {};
+                    data.results.forEach(r => {
+                        newResultsMap[r.url] = r;
+                    });
+
+                    const mergedResults = lastBatchResults.map(r => {
+                        if (r.status === 'failed' && newResultsMap[r.url]) {
+                            return newResultsMap[r.url];
+                        }
+                        return r;
+                    });
+
+                    // 결과 저장
+                    lastBatchResults = mergedResults;
+
+                    // 결과 렌더링
+                    renderBatchItems(mergedResults);
+
+                    // 요약 계산
+                    const summary = {
+                        success: mergedResults.filter(r => r.status === 'success').length,
+                        failed: mergedResults.filter(r => r.status === 'failed').length,
+                        skipped: mergedResults.filter(r => r.status === 'skipped').length
+                    };
+
+                    document.getElementById('batchSuccessCount').textContent = summary.success;
+                    document.getElementById('batchFailedCount').textContent = summary.failed;
+                    document.getElementById('batchPendingCount').textContent = summary.skipped;
+
+                    document.getElementById('batchProgressText').textContent =
+                        `재시도 완료! 성공: ${summary.success}, 실패: ${summary.failed}`;
+
+                    updateBatchProgress(failedUrls.length, failedUrls.length);
+
+                    // 실패 항목이 있으면 재시도 버튼 유지
+                    if (summary.failed > 0) {
+                        retryBtn.style.display = 'flex';
+                    } else {
+                        retryBtn.style.display = 'none';
+                    }
+                } else {
+                    alert('재시도 중 오류가 발생했습니다: ' + (data.error || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                alert('서버 통신 오류: ' + error.message);
+            } finally {
+                batchProcessing = false;
+                retryBtn.disabled = false;
+                startBtn.disabled = false;
+                retryBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                    실패 항목 재시도
+                `;
+            }
         }
 
         // 탭 전환 함수
