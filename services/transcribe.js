@@ -347,7 +347,13 @@ class TranscribeService {
                     resolve();
                 } else {
                     console.error('[Transcribe] HLS ffmpeg stderr:', stderrData.slice(-500));
-                    reject(new Error(`HLS 오디오 추출 실패: exit code ${code}`));
+                    // 오디오 스트림이 없는 경우 명확한 에러 메시지
+                    if (stderrData.includes('does not contain any stream') ||
+                        (stderrData.includes('Video:') && !stderrData.includes('Audio:'))) {
+                        reject(new Error('이 비디오에는 오디오가 없어 전사할 수 없습니다.'));
+                    } else {
+                        reject(new Error(`HLS 오디오 추출 실패: exit code ${code}`));
+                    }
                 }
             });
 
@@ -392,6 +398,36 @@ class TranscribeService {
         });
     }
 
+    // 비디오에 오디오 스트림이 있는지 확인
+    async hasAudioStream(videoPath) {
+        return new Promise((resolve) => {
+            const ffprobe = spawn(ffmpegPath, [
+                '-i', videoPath,
+                '-show_streams',
+                '-select_streams', 'a',
+                '-loglevel', 'error'
+            ]);
+
+            let hasAudio = false;
+            let stderrData = '';
+
+            ffprobe.stderr.on('data', (data) => {
+                stderrData += data.toString();
+                // ffmpeg -i 출력에서 Audio 스트림 확인
+                if (data.toString().includes('Audio:')) {
+                    hasAudio = true;
+                }
+            });
+
+            ffprobe.on('close', () => {
+                resolve(hasAudio);
+            });
+
+            // 5초 타임아웃
+            setTimeout(() => resolve(false), 5000);
+        });
+    }
+
     // 영상 길이 확인 (초 단위)
     async getVideoDuration(videoPath) {
         return new Promise((resolve) => {
@@ -429,6 +465,12 @@ class TranscribeService {
     }
 
     async extractAudio(videoPath, audioPath) {
+        // 오디오 스트림 존재 여부 확인
+        const hasAudio = await this.hasAudioStream(videoPath);
+        if (!hasAudio) {
+            throw new Error('이 비디오에는 오디오가 없어 전사할 수 없습니다.');
+        }
+
         // 영상 길이 확인
         const duration = await this.getVideoDuration(videoPath);
         const isLongVideo = duration > 600; // 10분 초과
@@ -462,7 +504,12 @@ class TranscribeService {
                     resolve();
                 } else {
                     console.error('[Transcribe] ffmpeg stderr:', stderrData.slice(-500));
-                    reject(new Error(`ffmpeg 실패: exit code ${code}`));
+                    // 오디오 스트림이 없는 경우 명확한 에러 메시지
+                    if (stderrData.includes('does not contain any stream')) {
+                        reject(new Error('이 비디오에는 오디오가 없어 전사할 수 없습니다.'));
+                    } else {
+                        reject(new Error(`ffmpeg 실패: exit code ${code}`));
+                    }
                 }
             });
 
