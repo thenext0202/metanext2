@@ -403,30 +403,26 @@ class TranscribeService {
     // 비디오에 오디오 스트림이 있는지 확인
     async hasAudioStream(videoPath) {
         return new Promise((resolve) => {
-            const ffprobe = spawn(ffmpegPath, [
-                '-i', videoPath,
-                '-show_streams',
-                '-select_streams', 'a',
-                '-loglevel', 'error'
+            const ffmpeg = spawn(ffmpegPath, [
+                '-i', videoPath
             ]);
 
             let hasAudio = false;
             let stderrData = '';
 
-            ffprobe.stderr.on('data', (data) => {
+            ffmpeg.stderr.on('data', (data) => {
                 stderrData += data.toString();
-                // ffmpeg -i 출력에서 Audio 스트림 확인
-                if (data.toString().includes('Audio:')) {
-                    hasAudio = true;
-                }
             });
 
-            ffprobe.on('close', () => {
+            ffmpeg.on('close', () => {
+                // stderr에서 Audio 스트림 확인
+                hasAudio = stderrData.includes('Audio:');
+                console.log(`[Transcribe] 오디오 스트림 체크: ${hasAudio ? '있음' : '없음'}`);
                 resolve(hasAudio);
             });
 
             // 5초 타임아웃
-            setTimeout(() => resolve(false), 5000);
+            setTimeout(() => resolve(true), 5000);  // 타임아웃 시 true로 변경 (일단 시도)
         });
     }
 
