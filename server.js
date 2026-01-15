@@ -772,25 +772,25 @@ app.post('/api/google/upload-from-url', async (req, res) => {
     }
 });
 
-// ===== 강사 관리 API =====
+// ===== 페르소나 관리 API =====
 
-// 강사 목록 조회
+// 페르소나 목록 조회
 app.get('/api/instructors', async (req, res) => {
     try {
         const instructors = await supabase.getInstructors();
         return res.json({ success: true, instructors });
     } catch (error) {
-        console.error('[Server] 강사 목록 조회 에러:', error.message);
-        return res.status(500).json({ error: '강사 목록 조회 실패' });
+        console.error('[Server] 페르소나 목록 조회 에러:', error.message);
+        return res.status(500).json({ error: '페르소나 목록 조회 실패' });
     }
 });
 
-// 강사 추가
+// 페르소나 추가
 app.post('/api/instructors', async (req, res) => {
     const { name, info } = req.body;
 
     if (!name || !info) {
-        return res.status(400).json({ error: '강사 이름과 정보가 필요합니다' });
+        return res.status(400).json({ error: '페르소나 이름과 정보가 필요합니다' });
     }
 
     try {
@@ -798,21 +798,21 @@ app.post('/api/instructors', async (req, res) => {
         if (instructor) {
             return res.json({ success: true, instructor });
         } else {
-            return res.status(500).json({ error: '강사 추가 실패' });
+            return res.status(500).json({ error: '페르소나 추가 실패' });
         }
     } catch (error) {
-        console.error('[Server] 강사 추가 에러:', error.message);
-        return res.status(500).json({ error: '강사 추가 실패' });
+        console.error('[Server] 페르소나 추가 에러:', error.message);
+        return res.status(500).json({ error: '페르소나 추가 실패' });
     }
 });
 
-// 강사 수정
+// 페르소나 수정
 app.put('/api/instructors/:id', async (req, res) => {
     const { id } = req.params;
     const { name, info } = req.body;
 
     if (!name || !info) {
-        return res.status(400).json({ error: '강사 이름과 정보가 필요합니다' });
+        return res.status(400).json({ error: '페르소나 이름과 정보가 필요합니다' });
     }
 
     try {
@@ -820,15 +820,15 @@ app.put('/api/instructors/:id', async (req, res) => {
         if (success) {
             return res.json({ success: true });
         } else {
-            return res.status(500).json({ error: '강사 수정 실패' });
+            return res.status(500).json({ error: '페르소나 수정 실패' });
         }
     } catch (error) {
-        console.error('[Server] 강사 수정 에러:', error.message);
-        return res.status(500).json({ error: '강사 수정 실패' });
+        console.error('[Server] 페르소나 수정 에러:', error.message);
+        return res.status(500).json({ error: '페르소나 수정 실패' });
     }
 });
 
-// 강사 삭제
+// 페르소나 삭제
 app.delete('/api/instructors/:id', async (req, res) => {
     const { id } = req.params;
 
@@ -837,11 +837,11 @@ app.delete('/api/instructors/:id', async (req, res) => {
         if (success) {
             return res.json({ success: true });
         } else {
-            return res.status(500).json({ error: '강사 삭제 실패' });
+            return res.status(500).json({ error: '페르소나 삭제 실패' });
         }
     } catch (error) {
-        console.error('[Server] 강사 삭제 에러:', error.message);
-        return res.status(500).json({ error: '강사 삭제 실패' });
+        console.error('[Server] 페르소나 삭제 에러:', error.message);
+        return res.status(500).json({ error: '페르소나 삭제 실패' });
     }
 });
 
@@ -909,20 +909,20 @@ app.post('/api/notion-url', async (req, res) => {
     }
 });
 
-// ===== 선택된 강사 관리 =====
+// ===== 선택된 페르소나 관리 =====
 
-// 선택된 강사 조회
+// 선택된 페르소나 조회
 app.get('/api/selected-instructor', async (req, res) => {
     try {
         const instructorId = await supabase.getSelectedInstructor();
         return res.json({ success: true, instructorId: instructorId || '' });
     } catch (error) {
-        console.error('[Server] 선택된 강사 조회 에러:', error.message);
-        return res.status(500).json({ error: '선택된 강사 조회 실패' });
+        console.error('[Server] 선택된 페르소나 조회 에러:', error.message);
+        return res.status(500).json({ error: '선택된 페르소나 조회 실패' });
     }
 });
 
-// 선택된 강사 저장
+// 선택된 페르소나 저장
 app.post('/api/selected-instructor', async (req, res) => {
     const { instructorId } = req.body;
 
@@ -931,17 +931,17 @@ app.post('/api/selected-instructor', async (req, res) => {
         if (success) {
             return res.json({ success: true });
         } else {
-            return res.status(500).json({ error: '선택된 강사 저장 실패' });
+            return res.status(500).json({ error: '선택된 페르소나 저장 실패' });
         }
     } catch (error) {
-        console.error('[Server] 선택된 강사 저장 에러:', error.message);
-        return res.status(500).json({ error: '선택된 강사 저장 실패' });
+        console.error('[Server] 선택된 페르소나 저장 에러:', error.message);
+        return res.status(500).json({ error: '선택된 페르소나 저장 실패' });
     }
 });
 
 // ===== 스크립트 생성 API =====
 
-// 전사 텍스트 + 지침 + 강사 정보로 새 스크립트 생성
+// 전사 텍스트 + 지침 + 페르소나 정보로 새 스크립트 생성
 app.post('/api/generate-script', async (req, res) => {
     const { transcript, instructorId } = req.body;
 
@@ -950,7 +950,7 @@ app.post('/api/generate-script', async (req, res) => {
     }
 
     if (!instructorId) {
-        return res.status(400).json({ error: '강사를 선택해주세요' });
+        return res.status(400).json({ error: '페르소나를 선택해주세요' });
     }
 
     if (apiKeyPool.getKeyCount() === 0) {
@@ -972,23 +972,23 @@ app.post('/api/generate-script', async (req, res) => {
             return res.status(400).json({ error: '지침이 설정되지 않았습니다. 먼저 지침을 설정해주세요.' });
         }
 
-        // 강사 정보 가져오기
+        // 페르소나 정보 가져오기
         const instructors = await supabase.getInstructors();
         const instructor = instructors.find(i => i.id === instructorId);
         if (!instructor) {
             apiKeyPool.markAvailable(apiKey);
-            return res.status(400).json({ error: '선택한 강사를 찾을 수 없습니다' });
+            return res.status(400).json({ error: '선택한 페르소나를 찾을 수 없습니다' });
         }
 
         const OpenAI = require('openai');
         const openai = new OpenAI({ apiKey });
 
         console.log('[Server] 스크립트 생성 시작...');
-        console.log('[Server] 강사:', instructor.name);
+        console.log('[Server] 페르소나:', instructor.name);
 
         const systemPrompt = `${prompt}
 
-## 강사 정보
+## 페르소나 정보
 - 이름: ${instructor.name}
 - 정보: ${instructor.info}`;
 
@@ -1007,7 +1007,7 @@ app.post('/api/generate-script', async (req, res) => {
 - 오타, 맞춤법, 띄어쓰기 수정
 - 말더듬이나 반복 표현 정리
 - 불필요한 추임새 제거 (음..., 어... 등)
-- 위 강사 정보에 맞게 스타일 변환
+- 위 페르소나 정보에 맞게 스타일 변환
 
 중요: 교정본, 변환본 등 중간 과정 없이 최종 스크립트만 출력하세요.
 
@@ -1101,7 +1101,7 @@ app.post('/api/batch-process', async (req, res) => {
     }
 
     if (!instructorId) {
-        return res.status(400).json({ error: '강사를 선택해주세요' });
+        return res.status(400).json({ error: '페르소나를 선택해주세요' });
     }
 
     // SSE 헤더 설정
@@ -1115,11 +1115,11 @@ app.post('/api/batch-process', async (req, res) => {
     };
 
     try {
-        // 강사 정보 미리 가져오기
+        // 페르소나 정보 미리 가져오기
         const instructors = await supabase.getInstructors();
         const instructor = instructors.find(i => i.id === instructorId);
         if (!instructor) {
-            sendEvent('error', { error: '선택한 강사를 찾을 수 없습니다' });
+            sendEvent('error', { error: '선택한 페르소나를 찾을 수 없습니다' });
             res.end();
             return;
         }
@@ -1149,7 +1149,7 @@ app.post('/api/batch-process', async (req, res) => {
             return;
         }
 
-        console.log(`[Batch] 병렬 처리 시작: ${urls.length}개 URL, 강사: ${instructor.name}`);
+        console.log(`[Batch] 병렬 처리 시작: ${urls.length}개 URL, 페르소나: ${instructor.name}`);
         sendEvent('start', { total: urls.length });
 
         const results = [];
@@ -1223,7 +1223,7 @@ app.post('/api/batch-process', async (req, res) => {
                 const OpenAI = require('openai');
                 const openai = new OpenAI({ apiKey });
 
-                const systemPrompt = `${prompt}\n\n## 강사 정보\n- 이름: ${instructor.name}\n- 정보: ${instructor.info}`;
+                const systemPrompt = `${prompt}\n\n## 페르소나 정보\n- 이름: ${instructor.name}\n- 정보: ${instructor.info}`;
 
                 const gptResponse = await openai.chat.completions.create({
                     model: 'gpt-5.2',
@@ -1231,7 +1231,7 @@ app.post('/api/batch-process', async (req, res) => {
                         { role: 'system', content: systemPrompt },
                         {
                             role: 'user',
-                            content: `다음은 음성 인식으로 생성된 스크립트입니다.\n\n아래 작업을 수행하고 **최종 결과물만** 출력해주세요:\n- 오타, 맞춤법, 띄어쓰기 수정\n- 말더듬이나 반복 표현 정리\n- 불필요한 추임새 제거 (음..., 어... 등)\n- 위 강사 정보에 맞게 스타일 변환\n\n중요: 교정본, 변환본 등 중간 과정 없이 최종 스크립트만 출력하세요.\n\n원본 스크립트:\n${transcribeResult.text}`
+                            content: `다음은 음성 인식으로 생성된 스크립트입니다.\n\n아래 작업을 수행하고 **최종 결과물만** 출력해주세요:\n- 오타, 맞춤법, 띄어쓰기 수정\n- 말더듬이나 반복 표현 정리\n- 불필요한 추임새 제거 (음..., 어... 등)\n- 위 페르소나 정보에 맞게 스타일 변환\n\n중요: 교정본, 변환본 등 중간 과정 없이 최종 스크립트만 출력하세요.\n\n원본 스크립트:\n${transcribeResult.text}`
                         }
                     ],
                     max_completion_tokens: 4000
@@ -1322,14 +1322,14 @@ app.post('/api/batch-process-legacy', async (req, res) => {
     }
 
     if (!instructorId) {
-        return res.status(400).json({ error: '강사를 선택해주세요' });
+        return res.status(400).json({ error: '페르소나를 선택해주세요' });
     }
 
-    // 강사 정보 미리 가져오기
+    // 페르소나 정보 미리 가져오기
     const instructors = await supabase.getInstructors();
     const instructor = instructors.find(i => i.id === instructorId);
     if (!instructor) {
-        return res.status(400).json({ error: '선택한 강사를 찾을 수 없습니다' });
+        return res.status(400).json({ error: '선택한 페르소나를 찾을 수 없습니다' });
     }
 
     // 지침 미리 가져오기
@@ -1351,7 +1351,7 @@ app.post('/api/batch-process-legacy', async (req, res) => {
         return res.status(400).json({ error: 'Notion 데이터베이스 ID를 추출할 수 없습니다' });
     }
 
-    console.log(`[Batch] 병렬 처리 시작: ${urls.length}개 URL, 강사: ${instructor.name}`);
+    console.log(`[Batch] 병렬 처리 시작: ${urls.length}개 URL, 페르소나: ${instructor.name}`);
 
     const CONCURRENCY = 5; // 동시 처리 수
 
@@ -1419,7 +1419,7 @@ app.post('/api/batch-process-legacy', async (req, res) => {
 
                     const systemPrompt = `${prompt}
 
-## 강사 정보
+## 페르소나 정보
 - 이름: ${instructor.name}
 - 정보: ${instructor.info}`;
 
@@ -1435,7 +1435,7 @@ app.post('/api/batch-process-legacy', async (req, res) => {
 - 오타, 맞춤법, 띄어쓰기 수정
 - 말더듬이나 반복 표현 정리
 - 불필요한 추임새 제거 (음..., 어... 등)
-- 위 강사 정보에 맞게 스타일 변환
+- 위 페르소나 정보에 맞게 스타일 변환
 
 중요: 교정본, 변환본 등 중간 과정 없이 최종 스크립트만 출력하세요.
 

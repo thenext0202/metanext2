@@ -28,10 +28,10 @@ class NotionService {
         return notionClient;
     }
 
-    // 데이터베이스에서 강사 이름으로 기존 페이지 검색
+    // 데이터베이스에서 페르소나 이름으로 기존 페이지 검색
     async findInstructorPage(databaseId, instructorName) {
         try {
-            console.log('[Notion] 강사 페이지 검색:', instructorName);
+            console.log('[Notion] 페르소나 페이지 검색:', instructorName);
 
             // 클라이언트 생성
             const token = process.env.NOTION_API_TOKEN;
@@ -64,7 +64,7 @@ class NotionService {
 
                 console.log('[Notion] DB 페이지 개수 (archived 제외):', dbPages.length);
 
-                // "XXX 강사 보드" 형태의 페이지 찾기
+                // "XXX 페르소나 보드" 형태의 페이지 찾기
                 for (const page of dbPages) {
                     // 제목 속성 찾기 (어떤 이름이든)
                     let pageTitle = '';
@@ -77,15 +77,15 @@ class NotionService {
 
                     console.log('[Notion] 페이지 제목:', pageTitle, '(archived:', page.archived, ')');
 
-                    // 강사 이름이 포함되고 "강사 보드"가 포함된 페이지 찾기
-                    if (pageTitle.includes(instructorName) && pageTitle.includes('강사 보드')) {
-                        console.log('[Notion] 기존 강사 페이지 발견:', page.id, pageTitle);
+                    // 페르소나 이름이 포함되고 "페르소나 보드"가 포함된 페이지 찾기
+                    if (pageTitle.includes(instructorName) && pageTitle.includes('페르소나 보드')) {
+                        console.log('[Notion] 기존 페르소나 페이지 발견:', page.id, pageTitle);
                         return page;
                     }
                 }
             }
 
-            console.log('[Notion] 기존 강사 페이지 없음');
+            console.log('[Notion] 기존 페르소나 페이지 없음');
             return null;
         } catch (error) {
             console.error('[Notion] 페이지 검색 실패:', error.message);
@@ -342,7 +342,7 @@ class NotionService {
         const client = this.getClient();
 
         try {
-            // 1. 기존 강사 페이지 검색
+            // 1. 기존 페르소나 페이지 검색
             let existingPage = null;
             if (instructorName) {
                 existingPage = await this.findInstructorPage(databaseId, instructorName);
@@ -370,7 +370,7 @@ class NotionService {
                 };
             } else {
                 // 3b. 새 페이지 생성
-                const pageTitle = instructorName ? `${instructorName} 강사 보드` : (videoTitle || '새 스크립트');
+                const pageTitle = instructorName ? `${instructorName} 페르소나 보드` : (videoTitle || '새 스크립트');
 
                 console.log('[Notion] 새 페이지 생성:', pageTitle);
 

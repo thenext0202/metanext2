@@ -1935,12 +1935,12 @@
                         </div>
                         <div>
                             <div class="action-card-title">스크립트 생성</div>
-                            <div class="action-card-desc">강사별 맞춤 스크립트를 생성합니다</div>
+                            <div class="action-card-desc">페르소나별 맞춤 스크립트를 생성합니다</div>
                         </div>
                     </div>
                     <div class="inline-controls">
                         <select id="instructorSelect" class="control-select" onchange="onInstructorChange()">
-                            <option value="">강사 선택...</option>
+                            <option value="">페르소나 선택...</option>
                         </select>
                         <label id="googleDriveLabel" class="checkbox-label" style="display: none;">
                             <input type="checkbox" id="uploadToGoogleDrive" checked>
@@ -1989,7 +1989,7 @@
                 <!-- 빈 상태 -->
                 <div id="scriptEmpty" class="empty-state">
                     <svg class="empty-state-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                    <p>먼저 전사를 완료한 후 강사를 선택하세요</p>
+                    <p>먼저 전사를 완료한 후 페르소나를 선택하세요</p>
                 </div>
             </div>
         </section>
@@ -2010,9 +2010,9 @@
                 </div>
 
                 <div class="batch-instructor-select">
-                    <label for="batchInstructorSelect">강사 선택</label>
+                    <label for="batchInstructorSelect">페르소나 선택</label>
                     <select id="batchInstructorSelect" class="control-select" style="width: 100%;">
-                        <option value="">강사를 선택하세요...</option>
+                        <option value="">페르소나를 선택하세요...</option>
                     </select>
                 </div>
 
@@ -2071,22 +2071,22 @@
                 <!-- 탭 -->
                 <div style="display: flex; gap: 6px; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 12px;">
                     <button class="script-settings-tab active" id="tabPrompt" onclick="showScriptSettingsTab('prompt')" style="flex: 1; padding: 10px; border: none; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500;">지침 설정</button>
-                    <button class="script-settings-tab" id="tabInstructors" onclick="showScriptSettingsTab('instructors')" style="flex: 1; padding: 10px; border: none; background: transparent; color: rgba(255,255,255,0.5); border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500;">강사 관리</button>
+                    <button class="script-settings-tab" id="tabInstructors" onclick="showScriptSettingsTab('instructors')" style="flex: 1; padding: 10px; border: none; background: transparent; color: rgba(255,255,255,0.5); border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500;">페르소나 관리</button>
                 </div>
 
                 <!-- 지침 설정 탭 -->
                 <div id="promptSettingsContent" style="flex: 1; overflow-y: auto;">
-                    <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 12px;">GPT에게 전달할 시스템 지침을 입력하세요. 강사 정보는 자동으로 추가됩니다.</p>
-                    <textarea id="promptTextarea" placeholder="예: 우리는 강사의 광고 소재를 기획하는 회사야. 너는 강사 정보를 참고해서 우리가 제공하는 스크립트를 강사의 정보로 치환해서 새로운 소재처럼 만들어줘." style="width: 100%; height: 200px; padding: 16px; font-size: 0.9rem; font-family: inherit; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(0,0,0,0.3); color: #fff; outline: none; resize: vertical; line-height: 1.6;"></textarea>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 12px;">GPT에게 전달할 시스템 지침을 입력하세요. 페르소나 정보는 자동으로 추가됩니다.</p>
+                    <textarea id="promptTextarea" placeholder="예: 우리는 페르소나의 광고 소재를 기획하는 회사야. 너는 페르소나 정보를 참고해서 우리가 제공하는 스크립트를 페르소나의 정보로 치환해서 새로운 소재처럼 만들어줘." style="width: 100%; height: 200px; padding: 16px; font-size: 0.9rem; font-family: inherit; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(0,0,0,0.3); color: #fff; outline: none; resize: vertical; line-height: 1.6;"></textarea>
                     <button onclick="savePrompt()" style="margin-top: 12px; padding: 12px 24px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">지침 저장</button>
                 </div>
 
-                <!-- 강사 관리 탭 -->
+                <!-- 페르소나 관리 탭 -->
                 <div id="instructorsSettingsContent" style="display: none; flex: 1; overflow-y: auto;">
                     <div style="margin-bottom: 16px;">
-                        <input type="text" id="newInstructorName" placeholder="강사 이름" style="width: 100%; padding: 12px 16px; font-size: 0.9rem; font-family: inherit; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; background: rgba(0,0,0,0.3); color: #fff; outline: none; margin-bottom: 8px;">
-                        <textarea id="newInstructorInfo" placeholder="강사 정보 (경력, 전문분야, 특징 등)" style="width: 100%; height: 80px; padding: 12px 16px; font-size: 0.9rem; font-family: inherit; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; background: rgba(0,0,0,0.3); color: #fff; outline: none; resize: vertical; margin-bottom: 8px;"></textarea>
-                        <button onclick="addInstructor()" style="padding: 10px 20px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">강사 추가</button>
+                        <input type="text" id="newInstructorName" placeholder="페르소나 이름" style="width: 100%; padding: 12px 16px; font-size: 0.9rem; font-family: inherit; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; background: rgba(0,0,0,0.3); color: #fff; outline: none; margin-bottom: 8px;">
+                        <textarea id="newInstructorInfo" placeholder="페르소나 정보 (경력, 전문분야, 특징 등)" style="width: 100%; height: 80px; padding: 12px 16px; font-size: 0.9rem; font-family: inherit; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; background: rgba(0,0,0,0.3); color: #fff; outline: none; resize: vertical; margin-bottom: 8px;"></textarea>
+                        <button onclick="addInstructor()" style="padding: 10px 20px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">페르소나 추가</button>
                     </div>
                     <div id="instructorsList" style="max-height: 250px; overflow-y: auto;"></div>
                 </div>
@@ -2128,22 +2128,22 @@
                 document.getElementById('singleModeSection').classList.add('active');
             } else if (mode === 'batch') {
                 document.getElementById('batchModeSection').classList.add('active');
-                // 병렬 모드 강사 목록 업데이트
+                // 병렬 모드 페르소나 목록 업데이트
                 updateBatchInstructorSelect();
             }
         }
 
-        // 병렬 모드 강사 선택 드롭다운 업데이트
+        // 병렬 모드 페르소나 선택 드롭다운 업데이트
         async function updateBatchInstructorSelect() {
             const select = document.getElementById('batchInstructorSelect');
 
-            // 강사 목록이 비어있으면 먼저 로드
+            // 페르소나 목록이 비어있으면 먼저 로드
             if (instructorsList.length === 0) {
-                select.innerHTML = '<option value="">강사 목록 로딩 중...</option>';
+                select.innerHTML = '<option value="">페르소나 목록 로딩 중...</option>';
                 await loadInstructors();
             }
 
-            select.innerHTML = '<option value="">강사를 선택하세요...</option>';
+            select.innerHTML = '<option value="">페르소나를 선택하세요...</option>';
             instructorsList.forEach(inst => {
                 select.innerHTML += `<option value="${inst.id}" style="color: #333; background: #fff;">${inst.name}</option>`;
             });
@@ -2152,7 +2152,7 @@
         // ===== 병렬 처리 함수 =====
         let batchProcessing = false;
         let lastBatchResults = []; // 마지막 결과 저장 (재시도용)
-        let lastInstructorId = null; // 마지막 강사 ID 저장
+        let lastInstructorId = null; // 마지막 페르소나 ID 저장
 
         async function startBatchProcess() {
             if (batchProcessing) return;
@@ -2161,7 +2161,7 @@
             const urlsText = document.getElementById('batchUrlsInput').value.trim();
 
             if (!instructorId) {
-                alert('강사를 선택해주세요.');
+                alert('페르소나를 선택해주세요.');
                 return;
             }
 
@@ -2424,7 +2424,7 @@
             }
 
             if (!lastInstructorId) {
-                alert('강사 정보가 없습니다. 다시 시작해주세요.');
+                alert('페르소나 정보가 없습니다. 다시 시작해주세요.');
                 return;
             }
 
@@ -2625,11 +2625,11 @@
             }
         }
 
-        // ===== 강사 및 스크립트 생성 기능 =====
+        // ===== 페르소나 및 스크립트 생성 기능 =====
         let instructorsList = [];
         let generatedScript = '';
 
-        // 강사 목록 로드
+        // 페르소나 목록 로드
         async function loadInstructors() {
             try {
                 const response = await fetch('/api/instructors');
@@ -2638,20 +2638,20 @@
                     instructorsList = data.instructors;
                     renderInstructorSelect(false);
                     renderInstructorsList();
-                    // 저장된 강사 선택 로드
+                    // 저장된 페르소나 선택 로드
                     await loadSelectedInstructor();
                 }
             } catch (error) {
-                console.error('강사 목록 로드 실패:', error);
+                console.error('페르소나 목록 로드 실패:', error);
             }
         }
 
-        // 강사 선택 드롭다운 렌더링
+        // 페르소나 선택 드롭다운 렌더링
         function renderInstructorSelect(preserveSelection = true) {
             const select = document.getElementById('instructorSelect');
             const currentValue = preserveSelection ? select.value : '';
 
-            select.innerHTML = '<option value="" style="color: #333; background: #fff;">강사 선택...</option>';
+            select.innerHTML = '<option value="" style="color: #333; background: #fff;">페르소나 선택...</option>';
             instructorsList.forEach(inst => {
                 select.innerHTML += `<option value="${inst.id}" style="color: #333; background: #fff;">${inst.name}</option>`;
             });
@@ -2662,7 +2662,7 @@
             }
         }
 
-        // 강사 선택 변경 시 저장
+        // 페르소나 선택 변경 시 저장
         async function onInstructorChange() {
             const select = document.getElementById('instructorSelect');
             try {
@@ -2672,11 +2672,11 @@
                     body: JSON.stringify({ instructorId: select.value })
                 });
             } catch (error) {
-                console.error('강사 선택 저장 실패:', error);
+                console.error('페르소나 선택 저장 실패:', error);
             }
         }
 
-        // 저장된 강사 선택 로드
+        // 저장된 페르소나 선택 로드
         async function loadSelectedInstructor() {
             try {
                 const response = await fetch('/api/selected-instructor');
@@ -2685,15 +2685,15 @@
                     document.getElementById('instructorSelect').value = data.instructorId;
                 }
             } catch (error) {
-                console.error('선택된 강사 로드 실패:', error);
+                console.error('선택된 페르소나 로드 실패:', error);
             }
         }
 
-        // 강사 목록 렌더링 (설정 모달)
+        // 페르소나 목록 렌더링 (설정 모달)
         function renderInstructorsList() {
             const container = document.getElementById('instructorsList');
             if (instructorsList.length === 0) {
-                container.innerHTML = '<p style="color: rgba(255,255,255,0.4); text-align: center; padding: 20px;">등록된 강사가 없습니다.</p>';
+                container.innerHTML = '<p style="color: rgba(255,255,255,0.4); text-align: center; padding: 20px;">등록된 페르소나가 없습니다.</p>';
                 return;
             }
 
@@ -2724,13 +2724,13 @@
             container.innerHTML = html;
         }
 
-        // 강사 수정 모드 표시
+        // 페르소나 수정 모드 표시
         function showEditInstructor(id) {
             document.querySelector(`.instructor-view-${id}`).style.display = 'none';
             document.querySelector(`.instructor-edit-${id}`).style.display = 'block';
         }
 
-        // 강사 수정 취소
+        // 페르소나 수정 취소
         function cancelEditInstructor(id) {
             document.querySelector(`.instructor-view-${id}`).style.display = 'block';
             document.querySelector(`.instructor-edit-${id}`).style.display = 'none';
@@ -2742,13 +2742,13 @@
             }
         }
 
-        // 강사 수정 저장
+        // 페르소나 수정 저장
         async function updateInstructor(id) {
             const name = document.getElementById(`edit-name-${id}`).value.trim();
             const info = document.getElementById(`edit-info-${id}`).value.trim();
 
             if (!name || !info) {
-                alert('강사 이름과 정보를 모두 입력해주세요.');
+                alert('페르소나 이름과 정보를 모두 입력해주세요.');
                 return;
             }
 
@@ -2760,23 +2760,23 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    alert('강사 정보가 수정되었습니다!');
+                    alert('페르소나 정보가 수정되었습니다!');
                     loadInstructors();
                 } else {
-                    alert(data.error || '강사 수정 실패');
+                    alert(data.error || '페르소나 수정 실패');
                 }
             } catch (error) {
-                alert('강사 수정 중 오류가 발생했습니다.');
+                alert('페르소나 수정 중 오류가 발생했습니다.');
             }
         }
 
-        // 강사 추가
+        // 페르소나 추가
         async function addInstructor() {
             const name = document.getElementById('newInstructorName').value.trim();
             const info = document.getElementById('newInstructorInfo').value.trim();
 
             if (!name || !info) {
-                showError('강사 이름과 정보를 모두 입력해주세요.');
+                showError('페르소나 이름과 정보를 모두 입력해주세요.');
                 return;
             }
 
@@ -2790,19 +2790,19 @@
                 if (data.success) {
                     document.getElementById('newInstructorName').value = '';
                     document.getElementById('newInstructorInfo').value = '';
-                    showSuccess('강사가 추가되었습니다.');
+                    showSuccess('페르소나가 추가되었습니다.');
                     loadInstructors();
                 } else {
-                    showError(data.error || '강사 추가 실패');
+                    showError(data.error || '페르소나 추가 실패');
                 }
             } catch (error) {
-                showError('강사 추가 중 오류가 발생했습니다.');
+                showError('페르소나 추가 중 오류가 발생했습니다.');
             }
         }
 
-        // 강사 삭제
+        // 페르소나 삭제
         async function deleteInstructor(id) {
-            if (!confirm('이 강사를 삭제하시겠습니까?')) return;
+            if (!confirm('이 페르소나를 삭제하시겠습니까?')) return;
 
             try {
                 const response = await fetch(`/api/instructors/${id}`, {
@@ -2810,13 +2810,13 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    showSuccess('강사가 삭제되었습니다.');
+                    showSuccess('페르소나가 삭제되었습니다.');
                     loadInstructors();
                 } else {
-                    showError(data.error || '강사 삭제 실패');
+                    showError(data.error || '페르소나 삭제 실패');
                 }
             } catch (error) {
-                showError('강사 삭제 중 오류가 발생했습니다.');
+                showError('페르소나 삭제 중 오류가 발생했습니다.');
             }
         }
 
@@ -2868,11 +2868,11 @@
             }
 
             if (!instructorId) {
-                showError('강사를 선택해주세요.');
+                showError('페르소나를 선택해주세요.');
                 return;
             }
 
-            // 선택된 강사 정보
+            // 선택된 페르소나 정보
             const instructor = instructorsList.find(i => i.id === instructorId);
             const instructorName = instructor ? instructor.name : null;
 
@@ -3442,7 +3442,7 @@
                 scriptBadge.style.color = 'rgba(255, 255, 255, 0.5)';
             }
 
-            // 강사 이름 초기화
+            // 페르소나 이름 초기화
             const generatedInstructorName = document.getElementById('generatedInstructorName');
             if (generatedInstructorName) {
                 generatedInstructorName.textContent = '-';

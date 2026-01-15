@@ -56,7 +56,7 @@ class SupabaseService {
         }
     }
 
-    // ===== 강사 관리 =====
+    // ===== 페르소나 관리 =====
     async getInstructors() {
         if (!this.enabled) return [];
 
@@ -67,7 +67,7 @@ class SupabaseService {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                console.log('[Supabase] 강사 목록 조회 에러:', error.message);
+                console.log('[Supabase] 페르소나 목록 조회 에러:', error.message);
                 return [];
             }
             return data || [];
@@ -88,7 +88,7 @@ class SupabaseService {
                 .single();
 
             if (error) {
-                console.log('[Supabase] 강사 추가 에러:', error.message);
+                console.log('[Supabase] 페르소나 추가 에러:', error.message);
                 return null;
             }
             return data;
@@ -108,7 +108,7 @@ class SupabaseService {
                 .eq('id', id);
 
             if (error) {
-                console.log('[Supabase] 강사 수정 에러:', error.message);
+                console.log('[Supabase] 페르소나 수정 에러:', error.message);
                 return false;
             }
             return true;
@@ -128,7 +128,7 @@ class SupabaseService {
                 .eq('id', id);
 
             if (error) {
-                console.log('[Supabase] 강사 삭제 에러:', error.message);
+                console.log('[Supabase] 페르소나 삭제 에러:', error.message);
                 return false;
             }
             return true;
@@ -156,7 +156,7 @@ class SupabaseService {
         return await this.setSession('notion_db_url', url);
     }
 
-    // ===== 선택된 강사 관리 =====
+    // ===== 선택된 페르소나 관리 =====
     async getSelectedInstructor() {
         return await this.getSession('selected_instructor');
     }

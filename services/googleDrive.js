@@ -96,7 +96,7 @@ class GoogleDriveService {
         return !!(credentials && credentials.access_token);
     }
 
-    // 동영상 업로드 (강사별 폴더 지원)
+    // 동영상 업로드 (페르소나별 폴더 지원)
     async uploadVideo(filePath, fileName, instructorName = null) {
         if (!this.isAuthenticated()) {
             throw new Error('Google Drive 인증이 필요합니다.');
@@ -109,11 +109,11 @@ class GoogleDriveService {
         // MetaGrabber 폴더 가져오기/생성
         let rootFolderId = await this.getOrCreateFolder(drive, 'MetaGrabber');
 
-        // 강사 이름이 있으면 하위 폴더 생성
+        // 페르소나 이름이 있으면 하위 폴더 생성
         let folderId = rootFolderId;
         if (instructorName) {
             folderId = await this.getOrCreateFolder(drive, instructorName, rootFolderId);
-            console.log('[GoogleDrive] 강사 폴더:', instructorName);
+            console.log('[GoogleDrive] 페르소나 폴더:', instructorName);
         }
 
         const fileMetadata = {
