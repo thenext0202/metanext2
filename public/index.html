@@ -2135,18 +2135,14 @@
 
         // 병렬 모드 페르소나 선택 드롭다운 업데이트
         async function updateBatchInstructorSelect() {
-            const select = document.getElementById('batchInstructorSelect');
-
             // 페르소나 목록이 비어있으면 먼저 로드
             if (instructorsList.length === 0) {
+                const select = document.getElementById('batchInstructorSelect');
                 select.innerHTML = '<option value="">페르소나 목록 로딩 중...</option>';
                 await loadInstructors();
+            } else {
+                renderBatchInstructorSelect();
             }
-
-            select.innerHTML = '<option value="">페르소나를 선택하세요...</option>';
-            instructorsList.forEach(inst => {
-                select.innerHTML += `<option value="${inst.id}" style="color: #333; background: #fff;">${inst.name}</option>`;
-            });
         }
 
         // ===== 병렬 처리 함수 =====
@@ -2638,11 +2634,26 @@
                     instructorsList = data.instructors;
                     renderInstructorSelect(false);
                     renderInstructorsList();
+                    renderBatchInstructorSelect();
                     // 저장된 페르소나 선택 로드
                     await loadSelectedInstructor();
                 }
             } catch (error) {
                 console.error('페르소나 목록 로드 실패:', error);
+            }
+        }
+
+        // 병렬 모드 페르소나 선택 드롭다운 렌더링 (instructorsList 기반)
+        function renderBatchInstructorSelect() {
+            const select = document.getElementById('batchInstructorSelect');
+            if (!select) return;
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">페르소나를 선택하세요...</option>';
+            instructorsList.forEach(inst => {
+                select.innerHTML += `<option value="${inst.id}" style="color: #333; background: #fff;">${inst.name}</option>`;
+            });
+            if (currentValue) {
+                select.value = currentValue;
             }
         }
 
