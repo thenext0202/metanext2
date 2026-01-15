@@ -150,10 +150,16 @@ class InstagramDownloader {
                 const jsonStr = JSON.stringify(response.data);
                 console.log(`[Instagram] GraphQL 응답 길이: ${jsonStr.length}`);
 
+                // DASH manifest 또는 audio URL 확인
+                if (jsonStr.includes('dash_manifest') || jsonStr.includes('audio')) {
+                    console.log('[Instagram] DASH/Audio 형식 감지됨');
+                }
+
                 const videoUrl = this.extractVideoFromResponse(jsonStr);
 
                 if (videoUrl) {
                     console.log('[Instagram] GraphQL에서 비디오 URL 발견!');
+                    console.log(`[Instagram] URL 타입: ${videoUrl.includes('/o1/v/') ? 'DASH(분리형)' : '통합형'}`);
                     return {
                         video_url: videoUrl,
                         thumbnail_url: this.extractThumbnail(jsonStr),
