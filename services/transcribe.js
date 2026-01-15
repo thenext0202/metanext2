@@ -27,6 +27,8 @@ class TranscribeService {
     }
 
     async transcribe(videoUrl, language = '', prompt = '') {
+        console.log(`[Transcribe] 받은 비디오 URL: ${videoUrl}`);
+
         // UUID로 파일명 생성 (동시 요청 충돌 방지)
         const fileId = uuidv4();
         const videoPath = path.join(this.tempDir, `video_${fileId}.mp4`);

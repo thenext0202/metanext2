@@ -173,24 +173,28 @@ class InstagramDownloader {
         // video_url 직접
         const videoUrlMatch = jsonStr.match(/"video_url"\s*:\s*"([^"]+)"/);
         if (videoUrlMatch) {
+            console.log('[Instagram] video_url 패턴으로 발견');
             return this.cleanUrl(videoUrlMatch[1]);
         }
 
         // video_versions 배열에서 첫 번째 URL
         const versionsMatch = jsonStr.match(/"video_versions"\s*:\s*\[\s*\{[^}]*"url"\s*:\s*"([^"]+)"/);
         if (versionsMatch) {
+            console.log('[Instagram] video_versions 패턴으로 발견');
             return this.cleanUrl(versionsMatch[1]);
         }
 
         // CDN URL 직접
         const cdnMatch = jsonStr.match(/(https?:\\\/\\\/[^"]*?cdninstagram\.com\\\/[^"]*?\.mp4[^"]*)/);
         if (cdnMatch) {
+            console.log('[Instagram] CDN mp4 패턴으로 발견');
             return this.cleanUrl(cdnMatch[1]);
         }
 
         // o1/v/ 형식 CDN URL
         const cdnMatch2 = jsonStr.match(/(https?:\\\/\\\/[^"]*?cdninstagram\.com\\\/o1\\\/v\\\/[^"]+)/);
         if (cdnMatch2) {
+            console.log('[Instagram] o1/v CDN 패턴으로 발견');
             return this.cleanUrl(cdnMatch2[1]);
         }
 
